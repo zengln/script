@@ -51,7 +51,7 @@ class NmonResult(object):
             sheet.write(index, 2, mem)
             sheet.write(index, 3, net[2])
             sheet.write(index, 4, disk)
-        wbk.save(r'C:\Users\zengjn22046\Desktop\test.xls')
+        wbk.save(r'C:\test.xls')
 
     '''
         返回第一个文件的 workbook
