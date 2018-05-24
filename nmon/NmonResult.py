@@ -6,6 +6,7 @@
 
 import xlrd
 import xlwt
+import re
 
 from xlutils.copy import copy
 
@@ -53,6 +54,54 @@ class NmonResult(object):
             sheet.write(index, 4, disk)
         wbk.save(r'C:\test.xls')
 
+
+    '''
+        分页保存提取结果
+        sheet 名以数组形式传入
+        将地址中含有对应 sheet 页名称的数据提取到对应页面
+        否则默认保存到sheet1
+    '''
+    def get_multi_page_file(self, sheet_names):
+        file_num = self.__nFiles.__len__()
+        file_row_dict = {'sheet1': 0}
+        wbk = xlwt.Workbook()
+        wbk.add_sheet('sheet1')
+        for sheet_index in range(0, len(sheet_names)):
+            wbk.add_sheet(sheet_names[sheet_index])
+            file_row_dict[sheet_names[sheet_index]] = 0
+
+        for file_index in range(0, file_num):
+            workbook = xlrd.open_workbook(self.__nFiles[file_index])
+            # 读取内容
+            cpu = self.get_avg_cpu(workbook)
+            mem = self.get_avg_mem(workbook)
+            net = self.get_avg_net(workbook)
+            disk = self.get_avg_disk_write(workbook)
+            sheet = wbk.get_sheet(wbk.sheet_index('sheet1'))
+
+            current_sheet = "sheet1"
+
+            #找到对应的sheet页面,并写入
+            for sheet_name_index in range(0, len(sheet_names)):
+                pattern_str = sheet_names[sheet_name_index]
+                pattern = re.compile(pattern_str, re.S)
+                result = re.search(pattern, self.__nFiles[file_index])
+                if result != None:
+                    sheet = wbk.get_sheet(wbk.sheet_index(sheet_names[sheet_name_index]))
+                    current_sheet = sheet_names[sheet_name_index]
+                    break
+
+            row_index = file_row_dict[current_sheet]
+            file_row_dict[current_sheet] = row_index + 1
+            sheet.write(row_index, 0, self.__nFiles[file_index])
+            sheet.write(row_index, 1, cpu[2])
+            sheet.write(row_index, 2, mem)
+            sheet.write(row_index, 3, net[2])
+            sheet.write(row_index, 4, disk)
+
+        wbk.save(r'C:\test.xls')
+
+
     '''
         返回第一个文件的 workbook
     '''
@@ -74,7 +123,7 @@ class NmonResult(object):
         wb = copy(rd)
         ws = wb.get_sheet(wb.sheet_index(sheet_name))
         ws.write(row, col, data)
-        ws.save(file_path)
+        wb.save(file_path)
 
     '''
         返回一个数组, 内容如下:
