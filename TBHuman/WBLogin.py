@@ -157,7 +157,8 @@ class WBHuman():
         print(response.read().decode('utf-8'))
 
 
-wb = WBHuman('18166043649', '642301966a')
+wb = WBHuman('admin', '123456')
 wb.login()
+
 
 
