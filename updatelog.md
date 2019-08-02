@@ -18,3 +18,6 @@ selenium + chromedriver 模拟浏览器登录微博
 #### 2018-05-23
 
 添加通过 python 调用 excel 宏解析 nmon 文件脚本
+
+#### 2019-08-02
+添加远程下载nmon文件类
