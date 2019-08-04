@@ -21,7 +21,8 @@ import os
 
 def get_nmon_result_file(micro_file, nmon_files, save_path = ""):
     x1 = win32com.client.Dispatch("Excel.Application")
-    x1.Visible = True
+    # 进程是否可见, True 为可见, False 为不可见
+    x1.Visible = False
     nmon_tuple = [0]
     result_file = []
 
@@ -45,6 +46,7 @@ def get_nmon_result_file(micro_file, nmon_files, save_path = ""):
         print(win32api.FormatMessage(error.excepinfo[0]))
 
     x1.Quit()
+    x1 = None
     return result_file
 
 
