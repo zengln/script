@@ -35,10 +35,15 @@ class NmonResult(object):
     '''
         提供简单的提取数据需求
     '''
-    def get_file(self):
+    def get_file(self, path=r'D:\test.xls'):
         file_num = self.__nFiles.__len__()
         wbk = xlwt.Workbook()
         sheet = wbk.add_sheet('sheet1')
+        sheet.write(0, 0, "文件路径")
+        sheet.write(0, 1, "CPU")
+        sheet.write(0, 2, "MEMORY")
+        sheet.write(0, 3, "NETWORK")
+        sheet.write(0, 4, "DISKI/O")
         for index in range(0, file_num):
             workbook = xlrd.open_workbook(self.__nFiles[index])
             # 读取内容
@@ -47,12 +52,12 @@ class NmonResult(object):
             net = self.get_avg_net(workbook)
             disk = self.get_avg_disk_write(workbook)
             # 写入新的 excel 中
-            sheet.write(index, 0, self.__nFiles[index])
-            sheet.write(index, 1, cpu[2])
-            sheet.write(index, 2, mem)
-            sheet.write(index, 3, net[2])
-            sheet.write(index, 4, disk)
-        wbk.save(r'C:\test.xls')
+            sheet.write(index + 1, 0, self.__nFiles[index])
+            sheet.write(index + 1, 1, cpu[2])
+            sheet.write(index + 1, 2, mem)
+            sheet.write(index + 1, 3, net[2])
+            sheet.write(index + 1, 4, disk)
+        wbk.save(path)
 
 
     '''
