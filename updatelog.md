@@ -24,3 +24,7 @@ selenium + chromedriver 模拟浏览器登录微博
 
 ### 2019-08-04
 新增读取控制文件类
+将运行Excel进程转为不可见
+新增nmon_analyse.py文件
+NmonResult.py将结果文件第一行保存为标题,数据从第二行开始写入
+
