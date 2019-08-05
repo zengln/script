@@ -32,6 +32,6 @@ try:
     nr = NmonResult.NmonResult(result)
     nr.get_file(path=path)
 except:
-    file = open(basepath + "\\test.log", "w+")
+    file = open(basepath + "\\error.log", "w+")
     file.write(traceback.format_exc())
     file.close()
