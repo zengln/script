@@ -144,19 +144,34 @@ class NmonResult(object):
 
     '''
         MEM
-        内存平均计算公式:
-        (Memtotal - Memfree - cached - buffers)/Memtotal  * 100即( =(B2-F2-K2-N2)/B2*100)
+        Linux内存平均计算公式:
+        (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
+        即( =(B2-F2-K2-N2)/B2*100)
+        AIX内存平均计算公式:
+        (Real total + Virtuak total - Real Free - Virtual Free)/(Real total + Virtual total) * 100
+        即(=(F2+G2-D2-E2)/(F2+G2))*100
     '''
     def get_avg_mem(self, workbook):
         sheet = workbook.sheet_by_name("MEM")
         avg_sum = 0
-        for index in range(1, sheet.nrows):
-            b = sheet.cell_value(index, 1)
-            f = sheet.cell_value(index, 5)
-            k = sheet.cell_value(index, 10)
-            n = sheet.cell_value(index, 13)
-            avg = (b-f-k-n)/b*100
-            avg_sum = avg_sum + avg
+        if sheet.ncols == 16:
+            for index in range(1, sheet.nrows):
+                b = sheet.cell_value(index, 1)
+                f = sheet.cell_value(index, 5)
+                k = sheet.cell_value(index, 10)
+                n = sheet.cell_value(index, 13)
+                avg = (b-f-k-n)/b*100
+                avg_sum = avg_sum + avg
+        elif sheet.ncols == 7:
+            for index in range(1, sheet.nrows):
+                d = sheet.cell_value(index, 3)
+                e = sheet.cell_value(index, 4)
+                f = sheet.cell_value(index, 5)
+                g = sheet.cell_value(index, 6)
+                avg = (f+g-d-e)/(f+g)*100
+                avg_sum = avg_sum + avg
+        else:
+            return "无法识别的内存页"
         return avg_sum/(sheet.nrows-1)
 
     '''
