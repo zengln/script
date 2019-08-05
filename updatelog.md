@@ -30,3 +30,6 @@ NmonResult.py将结果文件第一行保存为标题,数据从第二行开始写
 
 ### 2019-08-05
 新增处理AIX系统,MEM数据计算问题
+配置文件新增参数
+nmon_analyse 新增下载代码
+SSHSocket 类调整
