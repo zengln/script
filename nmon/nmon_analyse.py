@@ -3,6 +3,7 @@
 from nmon import ExcelMicro
 from nmon import NmonResult
 from nmon import RConfig
+from nmon import SSHSokcet
 import traceback
 import os
 
@@ -23,15 +24,29 @@ try:
     file_list = []
     config = RConfig.Config()
     config.reload_all_value()
-    basepath = os.getcwd()
-    MircoFilePath = config.nmon_analyse_file
-    get_all_nmon_file(config.nmon_file_dir)
-    nmon_tuple =file_list
-    path = config.nmon_result_file
-    result = ExcelMicro.get_nmon_result_file(MircoFilePath, nmon_tuple, path)
-    nr = NmonResult.NmonResult(result)
-    nr.get_file(path=path)
+    download_flag = config.download_flag
+    if download_flag == 'True':
+        # TODO 从远程服务器上将文件下载到本地
+        hostname = config.ip
+        remotePath = config.remote_dir
+        localPath = config.local_dir
+        uesrname = config.username
+        password = config.password
+        ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
+        files = ssh.get_all_file(remotePath, remotePath, [])
+        ssh.download_file(files, localPath, remotePath)
+    elif download_flag == 'False':
+        MircoFilePath = config.nmon_analyse_file
+        get_all_nmon_file(config.nmon_file_dir)
+        nmon_tuple =file_list
+        path = config.nmon_result_file
+        result = ExcelMicro.get_nmon_result_file(MircoFilePath, nmon_tuple, path)
+        nr = NmonResult.NmonResult(result)
+        nr.get_file(path=path)
+    else:
+        print("无法识别的下载标识")
 except:
+    basepath = os.getcwd()
     file = open(basepath + "\\error.log", "w+")
     file.write(traceback.format_exc())
     file.close()
