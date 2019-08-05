@@ -28,3 +28,5 @@ selenium + chromedriver 模拟浏览器登录微博
 新增nmon_analyse.py文件
 NmonResult.py将结果文件第一行保存为标题,数据从第二行开始写入
 
+### 2019-08-05
+新增处理AIX系统,MEM数据计算问题
