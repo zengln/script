@@ -9,17 +9,9 @@ import os
 from stat import S_ISDIR
 
 
-hostname = '127.0.0.1'
-port = '1000'
-username = "username"
-password = "password"
-localPath = r'D:\test'
-remotePath = r'/home/test'
+class sshSocket(object):
 
-
-class SSHSocket():
-
-    def __init__(self, hostname):
+    def __init__(self, hostname, username, password):
         tran = paramiko.Transport((hostname, 22))
         tran.connect(username=username, password=password)
         self.sftp = paramiko.SFTPClient.from_transport(tran)
@@ -72,8 +64,3 @@ class SSHSocket():
             print(winfilepath)
             self.sftp.get(remotepath + "/" + filepath[root_index:], winfilepath)
 
-
-ssh = SSHSocket(hostname=hostname)
-files = ssh.get_all_file(remotePath, remotePath, [])
-print(files)
-ssh.download_file(files, localPath, remotePath)
