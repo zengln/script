@@ -86,7 +86,7 @@ class NmonResult(object):
 
             current_sheet = "sheet1"
 
-            #找到对应的sheet页面,并写入
+            # 找到对应的sheet页面,并写入
             for sheet_name_index in range(0, len(sheet_names)):
                 pattern_str = sheet_names[sheet_name_index]
                 pattern = re.compile(pattern_str, re.S)
