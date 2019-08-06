@@ -36,3 +36,5 @@ SSHSocket 类调整
 
 ### 2019-08-06
 修改nmon_analyse, 将下载与处理 nmon 逻辑串起来
+
+修改nmon_analyse, 新增对非法下载标识的处理
