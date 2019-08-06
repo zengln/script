@@ -40,3 +40,7 @@ SSHSocket 类调整
 修改nmon_analyse, 新增对非法下载标识的处理
 
 修改nmon_analyse, 制定error.log 文件编码为 UTF-8
+
+修改 ExcelMirco.py, 调整参数
+
+修改NmonResult.py, 将结果中的 cpu 数据与内存数据存为保留两位小数的百分数
