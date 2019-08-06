@@ -19,7 +19,7 @@ import os
 '''
 
 
-def get_nmon_result_file(micro_file, nmon_files, save_path = ""):
+def get_nmon_result_file(micro_file, nmon_files, save_path=""):
     x1 = win32com.client.Dispatch("Excel.Application")
     # 进程是否可见, True 为可见, False 为不可见
     x1.Visible = False
