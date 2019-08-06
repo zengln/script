@@ -20,31 +20,39 @@ def get_all_nmon_file(path):
             get_all_nmon_file(path+"\\"+file)
 
 
+def analyse_file(config):
+    MircoFilePath = config.nmon_analyse_file
+    get_all_nmon_file(config.nmon_file_dir)
+    nmon_tuple = file_list
+    path = config.nmon_result_file
+    result = ExcelMicro.get_nmon_result_file(MircoFilePath, nmon_tuple, path)
+    nr = NmonResult.NmonResult(result)
+    nr.get_file(path=path)
+
+
+def download_file(config):
+    hostname = config.ip
+    remotePath = config.remote_dir
+    localPath = config.local_dir
+    uesrname = config.username
+    password = config.password
+    ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
+    files = ssh.get_all_file(remotePath, remotePath, [])
+    ssh.download_file(files, localPath, remotePath)
+
+
 try:
     file_list = []
     config = RConfig.Config()
     config.reload_all_value()
     download_flag = config.download_flag
+
     if download_flag == 'True':
-        # TODO 从远程服务器上将文件下载到本地
-        hostname = config.ip
-        remotePath = config.remote_dir
-        localPath = config.local_dir
-        uesrname = config.username
-        password = config.password
-        ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
-        files = ssh.get_all_file(remotePath, remotePath, [])
-        ssh.download_file(files, localPath, remotePath)
-    elif download_flag == 'False':
-        MircoFilePath = config.nmon_analyse_file
-        get_all_nmon_file(config.nmon_file_dir)
-        nmon_tuple =file_list
-        path = config.nmon_result_file
-        result = ExcelMicro.get_nmon_result_file(MircoFilePath, nmon_tuple, path)
-        nr = NmonResult.NmonResult(result)
-        nr.get_file(path=path)
-    else:
+        download_file(config=config)
+    elif download_flag != 'False':
         print("无法识别的下载标识")
+
+    analyse_file(config=config)
 except:
     basepath = os.getcwd()
     file = open(basepath + "\\error.log", "w+")
