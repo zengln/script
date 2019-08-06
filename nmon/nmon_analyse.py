@@ -63,5 +63,9 @@ except SystemExit:
 except:
     basepath = os.getcwd()
     file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
-    file.write(traceback.format_exc())
+    error_msg = traceback.format_exc()
+    print(error_msg)
+    file.write(error_msg)
     file.close()
+finally:
+    input("按任意键退出程序:")
