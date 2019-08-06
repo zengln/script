@@ -104,8 +104,6 @@ class NmonResult(object):
             sheet.write(row_index, 3, net[2])
             sheet.write(row_index, 4, disk)
 
-        wbk.save(r'C:\test.xls')
-
 
     '''
         返回第一个文件的 workbook
@@ -137,9 +135,9 @@ class NmonResult(object):
     def get_avg_cpu(self, workbook):
         sheet = workbook.sheet_by_name("CPU_ALL")
         results = []
-        results.append(sheet.cell_value(sheet.nrows-1, 1))
-        results.append(sheet.cell_value(sheet.nrows-1, 2))
-        results.append(sheet.cell_value(sheet.nrows-1, sheet.ncols-1))
+        results.append(str(round(sheet.cell_value(sheet.nrows-1, 1), 2)) + "%")
+        results.append(str(round(sheet.cell_value(sheet.nrows-1, 2), 2)) + "%")
+        results.append(str(round(sheet.cell_value(sheet.nrows-1, sheet.ncols-1), 2)) + "%")
         return results
 
     '''
@@ -172,7 +170,8 @@ class NmonResult(object):
                 avg_sum = avg_sum + avg
         else:
             return "无法识别的内存页"
-        return avg_sum/(sheet.nrows-1)
+        mem = str(round(avg_sum/(sheet.nrows-1), 2)) + "%"
+        return mem
 
     '''
         Net
