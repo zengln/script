@@ -44,3 +44,5 @@ SSHSocket 类调整
 修改 ExcelMirco.py, 调整参数
 
 修改NmonResult.py, 将结果中的 cpu 数据与内存数据存为保留两位小数的百分数
+
+新增按任意键退出程序,方便在 CMD 下查看报错信息
