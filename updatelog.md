@@ -38,3 +38,5 @@ SSHSocket 类调整
 修改nmon_analyse, 将下载与处理 nmon 逻辑串起来
 
 修改nmon_analyse, 新增对非法下载标识的处理
+
+修改nmon_analyse, 制定error.log 文件编码为 UTF-8
