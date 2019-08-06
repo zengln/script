@@ -57,11 +57,11 @@ try:
     analyse_file(config=config)
 except SystemExit:
     basepath = os.getcwd()
-    file = open(basepath + "\\error.log", "w+")
+    file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
     file.write("无法识别的下载标识, 配置文件中 download_flag 值只能为 True 或者 False")
     file.close()
 except:
     basepath = os.getcwd()
-    file = open(basepath + "\\error.log", "w+")
+    file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
     file.write(traceback.format_exc())
     file.close()
