@@ -60,6 +60,7 @@ except SystemExit:
     file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
     file.write("无法识别的下载标识, 配置文件中 download_flag 值只能为 True 或者 False")
     file.close()
+    input("按任意键退出程序:")
 except:
     basepath = os.getcwd()
     file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
@@ -67,5 +68,4 @@ except:
     print(error_msg)
     file.write(error_msg)
     file.close()
-finally:
     input("按任意键退出程序:")
