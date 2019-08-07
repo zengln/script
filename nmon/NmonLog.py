@@ -15,7 +15,7 @@ class nmonlog(object):
         if cls.log is None:
             logger = logging.Logger("nmon_analyse")
             handler_std = logging.StreamHandler()
-            handler_log = logging.FileHandler(filename="error.log")
+            handler_log = logging.FileHandler(filename="error.log", encoding="utf-8")
 
             logger.setLevel(logging.DEBUG)
             handler_std.setLevel(logging.INFO)
