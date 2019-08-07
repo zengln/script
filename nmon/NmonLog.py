@@ -6,27 +6,29 @@
 
 import logging
 
+
 class nmonlog(object):
+    log = None
 
     @classmethod
     def init_log(cls):
-        if cls.logger is not None:
-            return cls.logger
-        logger = logging.Logger("nmon_analyse")
-        handler_std = logging.StreamHandler()
-        handler_log = logging.FileHandler(filename="error.log")
+        if cls.log is None:
+            logger = logging.Logger("nmon_analyse")
+            handler_std = logging.StreamHandler()
+            handler_log = logging.FileHandler(filename="error.log")
 
-        logger.setLevel(logging.DEBUG)
-        handler_std.setLevel(logging.INFO)
-        handler_log.setLevel(logging.ERROR)
+            logger.setLevel(logging.DEBUG)
+            handler_std.setLevel(logging.INFO)
+            handler_log.setLevel(logging.ERROR)
 
-        formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s:%(message)s",datefmt="%Y-%m-%d %H:%M:%S")
-        handler_std.setFormatter(formatter)
-        handler_log.setFormatter(formatter)
+            formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+            handler_std.setFormatter(formatter)
+            handler_log.setFormatter(formatter)
 
-        logger.addHandler(handler_std)
-        logger.addHandler(handler_log)
-        cls.logger = logger
+            logger.addHandler(handler_std)
+            logger.addHandler(handler_log)
+            cls.log = logger
 
+        return cls.log
 
 
