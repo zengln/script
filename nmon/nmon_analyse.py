@@ -53,15 +53,10 @@ try:
         download_file(config=config)
     elif download_flag != 'False':
         log.error("无法识别的下载标识")
-        # print("无法识别的下载标识")
         sys.exit()
 
     analyse_file(config=config)
 except SystemExit:
-    basepath = os.getcwd()
-    file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
-    file.write("无法识别的下载标识, 配置文件中 download_flag 值只能为 True 或者 False")
-    file.close()
     input("按任意键退出程序:")
 except:
     basepath = os.getcwd()
