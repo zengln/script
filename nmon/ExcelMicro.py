@@ -9,6 +9,8 @@ import pythoncom
 import win32api
 import os
 
+from nmon.NmonLog import log
+
 '''
     @:param
     micro_file：宏文件(全路径)
@@ -43,11 +45,11 @@ def get_nmon_result_file(micro_file, nmon_files, save_path=""):
     try:
         x1.Application.Run("Main", 0, save_path, nmon_tuple)
     except pythoncom.com_error as error:
-        print(win32api.FormatMessage(error.excepinfo[0]))
-
-    x1.Quit()
-    x1 = None
-    return result_file
+        log.error(win32api.FormatMessage(error.excepinfo[0]))
+    finally:
+        x1.Quit()
+        x1 = None
+        return result_file
 
 
 '''

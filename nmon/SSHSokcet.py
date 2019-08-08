@@ -7,6 +7,7 @@
 import paramiko
 import os
 from stat import S_ISDIR
+from nmon.NmonLog import log
 
 
 class sshSocket(object):
@@ -50,17 +51,14 @@ class sshSocket(object):
 
         for filepath in filespath:
             winfilepath = localpath + "\\" + filepath.replace("/", "\\")
-            print(winfilepath)
             winpathindex = winfilepath.rfind("\\")
             winpath = winfilepath[:winpathindex]
             root_index = filepath.find("/")
-            print("正在下载:" + winfilepath[winpathindex+1:])
+            log.info("正在下载:" + winfilepath[winpathindex+1:])
             if not os.path.exists(winpath):
                 os.makedirs(winpath)
 
             file = open(winfilepath, 'w')
             file.close()
-            print(remotepath + "/" + filepath)
-            print(winfilepath)
             self.sftp.get(remotepath + "/" + filepath[root_index:], winfilepath)
 

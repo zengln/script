@@ -28,8 +28,12 @@ def analyse_file(config):
     get_all_nmon_file(config.nmon_file_dir)
     nmon_tuple = file_list
     path = config.nmon_result_file
+    log.info("开始解析文件")
     result = ExcelMicro.get_nmon_result_file(MircoFilePath, nmon_tuple, path)
+    log.info("解析文件结束")
+    log.info("开始提取数据")
     nr = NmonResult.NmonResult(result)
+    log.info("数据提取完成")
     nr.get_file(path=path)
 
 
@@ -59,10 +63,6 @@ try:
 except SystemExit:
     input("按任意键退出程序:")
 except:
-    basepath = os.getcwd()
-    file = open(basepath + "\\error.log", "w+", encoding='UTF-8')
     error_msg = traceback.format_exc()
-    print(error_msg)
-    file.write(error_msg)
-    file.close()
+    log.error("无法识别的下载标识")
     input("按任意键退出程序:")

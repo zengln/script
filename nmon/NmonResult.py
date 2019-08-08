@@ -18,7 +18,6 @@ class NmonResult(object):
     '''
     def __init__(self, nmonfiles):
         if not isinstance(nmonfiles, (str, tuple, list)):
-            print(type(nmonfiles))
             raise TypeError("参数类型错误, 仅支持字符串、数组与列表")
 
         self.__nFiles = []
