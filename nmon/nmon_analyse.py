@@ -4,7 +4,8 @@ from nmon import ExcelMicro
 from nmon import NmonResult
 from nmon import RConfig
 from nmon import SSHSokcet
-from nmon import NmonLog
+from nmon.NmonLog import log
+
 import traceback
 import os
 import sys
@@ -48,7 +49,6 @@ try:
     config = RConfig.Config()
     config.reload_all_value()
     download_flag = config.download_flag
-    log = NmonLog.nmonlog.init_log()
     if download_flag == 'True':
         download_file(config=config)
     elif download_flag != 'False':
