@@ -38,6 +38,7 @@ def analyse_file(config):
 
 
 def download_file(config):
+    log.info("读取配置文件")
     hostname = config.ip
     remotePath = config.remote_dir
     localPath = config.local_dir
@@ -64,5 +65,5 @@ except SystemExit:
     input("按任意键退出程序:")
 except:
     error_msg = traceback.format_exc()
-    log.error("无法识别的下载标识")
+    log.error(error_msg)
     input("按任意键退出程序:")
