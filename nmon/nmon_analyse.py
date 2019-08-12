@@ -5,7 +5,7 @@ from nmon import NmonResult
 from nmon import RConfig
 from nmon import SSHSokcet
 from nmon.NmonLog import log
-
+import time
 import traceback
 import os
 import sys
@@ -62,8 +62,10 @@ try:
 
     analyse_file(config=config)
 except SystemExit:
+    time.sleep(1)
     input("按任意键退出程序:")
 except:
     error_msg = traceback.format_exc()
     log.error(error_msg)
+    time.sleep(1)
     input("按任意键退出程序:")
