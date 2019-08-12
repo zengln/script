@@ -38,6 +38,12 @@ class NmonResult(object):
         file_num = self.__nFiles.__len__()
         wbk = xlwt.Workbook()
         sheet = wbk.add_sheet('sheet1')
+        # 设置单元格格式
+        sheet.col(0).width = 256 * 40
+        sheet.col(1).width = 256 * 20
+        sheet.col(2).width = 256 * 20
+        sheet.col(3).width = 256 * 20
+        sheet.col(4).width = 256 * 20
         sheet.write(0, 0, "文件路径")
         sheet.write(0, 1, "CPU")
         sheet.write(0, 2, "MEMORY")
