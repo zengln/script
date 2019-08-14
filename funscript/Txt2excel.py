@@ -6,11 +6,10 @@
 
 import os
 import xlrd
-import xlwt
 from xlutils.copy import copy
 
-excle_path = r'D:\tmp\新建文件夹\excel文件夹'
-txt_path = r'D:\tmp\新建文件夹\txt文件'
+excle_path = r'D:\MyDocument\nmon\新建文件夹\excel文件夹'
+txt_path = r'D:\MyDocument\nmon\新建文件夹\txt文件'
 
 
 def get_all_file(path):
@@ -82,20 +81,62 @@ def write_to_excel(match_list):
         if len(match_file) < 2:
             continue
 
-        old_excel = xlrd.open_workbook(excle_path + "\\" + match_file[1])
+        old_excel = xlrd.open_workbook(excle_path + "\\" + match_file[0])
         new_excel = copy(old_excel)
         ws = new_excel.get_sheet(0)
+        sheet = old_excel.sheet_by_index(0)
+        row_num = sheet.nrows
+        col_num = sheet.ncols
+        for row_index in range(0, row_num):
+            if "yq_respcode_xz" in sheet.cell_value(row_index, 0):
+                yq_index = row_index
+                break
+            elif row_index == row_num - 1:
+                # 新增行
+                ws.write(row_num, 0, "yq_respcode_xz")
+                ws.write(row_num + 1, 0, "yq_respmsg_xz")
+                ws.write(row_num + 2, 0, "yq_serviceStatus_xz")
+                # 修改行
+                ws.write(row_num + 3, 0, "yq_respcode_xg")
+                ws.write(row_num + 4, 0, "yq_respmsg_xg")
+                ws.write(row_num + 5, 0, "yq_serviceStatus_xg")
+                # 删除行
+                ws.write(row_num + 6, 0, "yq_respcode_sc")
+                ws.write(row_num + 7, 0, "yq_respmsg_sc")
+                ws.write(row_num + 8, 0, "yq_serviceStatus_sc")
 
         txt_files = match_file[1:]
         for txt_file in txt_files:
             # TODO zengln: 循环读取 txt 文件内容,区分新增,修改和删除文件, 查找到对应 excel 文件中的列, 并写入数据
-            pass
+            file = open(txt_path + "\\" + txt_file, mode='r')
+            if "新增" in txt_file:
+                row_index_yq = yq_index
+            elif "修改" in txt_file:
+                row_index_yq = yq_index + 3
+            elif "删除" in txt_file:
+                row_index_yq = yq_index + 6
+            else:
+                print("未识别的结果文档: "+ txt_file)
+                file.close()
+                continue
 
-        new_excel.save(excle_path + "\\" + match_file[1])
+            for line in file:
+                results = line.strip("\n").split(",")
+                casename = results[0]
+                for col_index in range(1, col_num):
+                    excel_casename = str(sheet.cell_value(0, col_index))
+                    if excel_casename.strip() == casename.strip():
+                        ws.write(row_index_yq, col_index, results[1])
+                        ws.write(row_index_yq + 1, col_index, results[2])
+                        ws.write(row_index_yq + 2, col_index, results[3])
+
+            file.close()
+
+        new_excel.save(excle_path + "\\" + match_file[0])
+
 
 excel_files = get_all_file(excle_path)
 txt_files = get_all_file(txt_path)
 match_list, un_match_list = txt_match_excel(txt_list=txt_files[1], excel_list=excel_files[1])
-print(match_list)
-print(un_match_list)
+print_unmatch_file(un_match_list)
 write_to_excel(match_list)
