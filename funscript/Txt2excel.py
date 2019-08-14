@@ -107,7 +107,6 @@ def write_to_excel(match_list):
 
         txt_files = match_file[1:]
         for txt_file in txt_files:
-            # TODO zengln: 循环读取 txt 文件内容,区分新增,修改和删除文件, 查找到对应 excel 文件中的列, 并写入数据
             file = open(txt_path + "\\" + txt_file, mode='r')
             if "新增" in txt_file:
                 row_index_yq = yq_index
