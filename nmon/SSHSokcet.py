@@ -6,7 +6,6 @@
 
 import paramiko
 import os
-import sys
 from stat import S_ISDIR
 from nmon.NmonLog import log
 
@@ -19,11 +18,8 @@ class sshSocket(object):
         self.sftp = paramiko.SFTPClient.from_transport(tran)
 
     def get_all_file(self, path, basepath, filelist):
-        try:
-            files = self.sftp.listdir_attr(path)
-        except IOError as e:
-            log.error("后台不存在此文件夹")
-            sys.exit()
+
+        files = self.sftp.listdir_attr(path)
 
         if basepath == path:
             last_index = basepath.rfind("/")
