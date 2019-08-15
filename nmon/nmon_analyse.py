@@ -5,6 +5,7 @@ from nmon import NmonResult
 from nmon import RConfig
 from nmon import SSHSokcet
 from nmon.NmonLog import log
+import paramiko.ssh_exception
 import time
 import traceback
 import os
@@ -44,10 +45,16 @@ def download_file(config):
     localPath = config.local_dir
     uesrname = config.username
     password = config.password
-    ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
-    files = ssh.get_all_file(remotePath, remotePath, [])
-    ssh.download_file(files, localPath, remotePath)
-
+    try:
+        ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
+        files = ssh.get_all_file(remotePath, remotePath, [])
+        ssh.download_file(files, localPath, remotePath)
+    except paramiko.ssh_exception.AuthenticationException:
+        log.error("账户认证失败,请确认帐号密码是否正确")
+        sys.exit()
+    except paramiko.ssh_exception.SSHException:
+        log.error("无法连接上主机, 请确认网络是否正常")
+        sys.exit()
 
 try:
     file_list = []
