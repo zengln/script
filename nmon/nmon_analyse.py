@@ -5,11 +5,10 @@ from nmon import NmonResult
 from nmon import RConfig
 from nmon import SSHSokcet
 from nmon.NmonLog import log
-import paramiko.ssh_exception
+from nmon.NmonException import NmonException
 import time
 import traceback
 import os
-import sys
 
 
 def get_all_nmon_file(path):
@@ -45,16 +44,9 @@ def download_file(config):
     localPath = config.local_dir
     uesrname = config.username
     password = config.password
-    try:
-        ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
-        files = ssh.get_all_file(remotePath, remotePath, [])
-        ssh.download_file(files, localPath, remotePath)
-    except paramiko.ssh_exception.AuthenticationException:
-        log.error("账户认证失败,请确认帐号密码是否正确")
-        sys.exit()
-    except paramiko.ssh_exception.SSHException:
-        log.error("无法连接上主机, 请确认网络是否正常")
-        sys.exit()
+    ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
+    files = ssh.get_all_file(remotePath, remotePath, [])
+    ssh.download_file(files, localPath, remotePath)
 
 try:
     file_list = []
@@ -64,14 +56,10 @@ try:
     if download_flag == 'True':
         download_file(config=config)
     elif download_flag != 'False':
-        log.error("无法识别的下载标识")
-        sys.exit()
+        raise NmonException("无法识别的下载标识")
 
     analyse_file(config=config)
-except SystemExit:
-    time.sleep(1)
-    input("按任意键退出程序:")
-except:
+except Exception:
     error_msg = traceback.format_exc()
     log.error(error_msg)
     time.sleep(1)
