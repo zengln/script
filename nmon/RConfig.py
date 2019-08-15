@@ -5,7 +5,7 @@ import os
 import sys
 
 from nmon.NmonLog import log
-
+from nmon.NmonException import NmonException
 
 class Config(object):
 
@@ -14,8 +14,7 @@ class Config(object):
         if os.path.exists(".\\config\\config.ini"):
             self.conf.read(".\\config\\config.ini", encoding="utf-8-sig")
         else:
-            log.error("请确认配置文件 config.ini 是否存在")
-            sys.exit()
+            raise NmonException("配置文件不存在")
 
     def reload_all_value(self):
         sections = self.conf.sections()
