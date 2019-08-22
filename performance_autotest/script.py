@@ -2,17 +2,6 @@
 
 import os
 
-lr_path = r'C:\Users\zengjn22046\Desktop\Get\scenario'
-jmeter_path = r'C:\Users\zengjn22046\Desktop\jemter'
-
-cmd_lr = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  C:\Users\zeng\Desktop\Get\scenario\Scenario-5.lrs -Run -ResultName C:\Users\zeng\Desktop\Get\scenario\res-5'
-
-cmd_jmeter = r'D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t C:\Users\zeng\Desktop\test.jmx -l C:\Users\zeng\Desktop\test.jtl'
-
-# os.system(cmd)
-# p = os.popen(cmd_jmeter)
-# print(p.read())
-
 
 def get_all_script(script_path, file_extension):
     """
@@ -40,9 +29,8 @@ def get_all_script(script_path, file_extension):
 
 
 if __name__ == '__main__':
-    lr_path = r'C:\Users\zengjn22046\Desktop\Get\scenario'
-    jmeter_path = r'C:\Users\zengjn22046\Desktop\jemter'
-    print(get_all_script(lr_path, ".jmx"))
+    jmeter_path = r'C:\Users\zeng\Desktop\jemter'
+    print(get_all_script(jmeter_path, ".jmx"))
 
 
 
