@@ -31,11 +31,22 @@ class Config(object):
         for section in sections:
             items = self.conf.items(section)
             for item in items:
-                self.__setattr__(item[0], item[1])
+                if not self.set_default_value(item):
+                    self.__setattr__(item[0], item[1])
 
     @classmethod
     def get_instance(cls):
         return cls.__instance
+
+    def set_default_value(self, section_item):
+        if not section_item[1] == "":
+            return False
+
+        if section_item[0] == "nmon_path":
+            self.__setattr__(section_item[0], ".")
+        elif section_item[0] == "nmon_acquisition_interval":
+            self.__setattr__(section_item[0], "1")
+        return True
 
 
 config = Config()
