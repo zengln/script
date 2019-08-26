@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import os
+import subprocess
 from performance_autotest.customexception import CustomError
 
 
@@ -34,10 +35,10 @@ def jmeter_cmd(script_file):
     """
     cmd_list = []
     # TODO cmd 参数化
-    cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
+    # cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
+    cmd = r"jmeter -n -t "
     for file in script_file:
         command = cmd + jmeter_path + os.path.sep + file + ".jmx" + " -l " + jmeter_path + os.path.sep + file + ".jtl"
-        print(command)
         cmd_list.append(command)
 
     return cmd_list
@@ -52,17 +53,26 @@ def lr_cmd(script_file):
     cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
     for file in script_file:
         command = cmd + lr_path + os.path.sep + file + ".lrs" + " -Run -ResultName " + lr_path + os.path.sep + file
-        print(command)
         cmd_list.append(command)
 
     return cmd_list
 
 
+def exe_command(commands):
+    for command in commands:
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if not result.returncode:
+            print(result.stdout.decode("gbk"))
+        else:
+            raise CustomError(result.stderr.decode('gbk'))
+
+
 if __name__ == '__main__':
-    lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
-    jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
+    lr_path = r"C:\Users\zengjn22046\Desktop\Get\scenario"
+    jmeter_path = r'C:\Users\zengjn22046\Desktop\jemter'
     files_jmeter = get_all_script(jmeter_path, ".jmx")
     jmeter_command = jmeter_cmd(files_jmeter)
     print("lr=============================")
     lr_files = get_all_script(lr_path, ".lrs")
     lr_command = lr_cmd(lr_files)
+    exe_command(lr_command)
