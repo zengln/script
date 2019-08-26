@@ -15,3 +15,9 @@ subprocess 模块替换os.system
 增加server.py
 
 增加config.ini文件
+
+lr调用异常log4cxx做特殊处理
+
+Rconfig部分配置设置默认值
+
+server拼接nmon命令
