@@ -5,6 +5,7 @@
 
 import paramiko
 
+from performance_autotest.RConfig import config
 from performance_autotest.customexception import CustomError
 
 
@@ -40,7 +41,27 @@ class Server(object):
 
         self.ssh.close()
 
+    def start_nmon_control(self, config):
+        """
+        开启后台监控
+        :param config:config 对象
+        :return:
+        """
+        if not hasattr(self, "ssh"):
+            raise CustomError("未与服务端进行连接")
+
+        nmon_cmd = config.nmon_path + "/nmon -f -t " + config.nmon_acquisition_interval+" -c " + config.nmon_all_time
+        print(nmon_cmd)
+
+        stdin, stdout, stderr = self.ssh.exec_command(nmon_cmd)
+
+        if stdout.channel.recv_exit_status():
+            err_msg = stderr.read().decode("utf-8")
+            raise CustomError(err_msg)
+
 
 if __name__ == "__main__":
-    server = Server("127.0.0.1")
-    server.connect("test", "test.123")
+    server = Server(config.ip)
+    server.connect(config.user, config.passwd)
+    server.start_nmon_control(config)
+    server.close()
