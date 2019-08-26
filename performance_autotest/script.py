@@ -35,8 +35,8 @@ def jmeter_cmd(script_file):
     """
     cmd_list = []
     # TODO cmd 参数化
-    # cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
-    cmd = r"jmeter -n -t "
+    cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
+    # cmd = r"jmeter -n -t "
     for file in script_file:
         command = cmd + jmeter_path + os.path.sep + file + ".jmx" + " -l " + jmeter_path + os.path.sep + file + ".jtl"
         cmd_list.append(command)
@@ -64,12 +64,16 @@ def exe_command(commands):
         if not result.returncode:
             print(result.stdout.decode("gbk"))
         else:
-            raise CustomError(result.stderr.decode('gbk'))
+            # 调用 lr 时,会抛出一个 log4cxx 的异常, 但是脚本正常跑完,结果保存成功,此异常暂时忽略
+            err_msg = result.stderr.decode('gbk')
+            if err_msg.find("log4cxx") >= 0:
+                continue
+            raise CustomError(err_msg)
 
 
 if __name__ == '__main__':
-    lr_path = r"C:\Users\zengjn22046\Desktop\Get\scenario"
-    jmeter_path = r'C:\Users\zengjn22046\Desktop\jemter'
+    lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
+    jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
     files_jmeter = get_all_script(jmeter_path, ".jmx")
     jmeter_command = jmeter_cmd(files_jmeter)
     print("lr=============================")
