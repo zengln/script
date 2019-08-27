@@ -41,10 +41,11 @@ class Server(object):
 
         self.ssh.close()
 
-    def start_nmon_control(self, config):
+    def start_nmon_control(self, config, filename):
         """
         开启后台监控
         :param config:config 对象
+        :param filename: nmon 文件名
         :return:
         """
         if not hasattr(self, "ssh"):
@@ -57,8 +58,8 @@ class Server(object):
             if stdout.channel.recv_exit_status():
                 raise CustomError(stderr.read().decode('utf-8'))
 
-        nmon_cmd = config.nmon_path + "/nmon -F ./nmontest/test.nmon -t " + config.nmon_acquisition_interval+" -c " \
-                   + config.nmon_all_time
+        nmon_cmd = config.nmon_path + "/nmon -F ./nmontest/" + filename + ".nmon -t " \
+                   + config.nmon_acquisition_interval+" -c " + config.nmon_all_time
 
         stdin, stdout, stderr = self.ssh.exec_command(nmon_cmd)
 
