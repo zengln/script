@@ -46,6 +46,9 @@ class Config(object):
             self.__setattr__(section_item[0], ".")
         elif section_item[0] == "nmon_acquisition_interval":
             self.__setattr__(section_item[0], "1")
+        elif section_item[0] == "download_local_path":
+            raise CustomError("存放监控文件路径不能为空")
+
         return True
 
 
