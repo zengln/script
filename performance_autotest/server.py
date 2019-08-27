@@ -50,8 +50,15 @@ class Server(object):
         if not hasattr(self, "ssh"):
             raise CustomError("未与服务端进行连接")
 
-        nmon_cmd = config.nmon_path + "/nmon -f -t " + config.nmon_acquisition_interval+" -c " + config.nmon_all_time
-        print(nmon_cmd)
+        stdin, stdout, stderr = self.ssh.exec_command("ls -dl nmontest")
+        if stdout.channel.recv_exit_status():
+            stdin, stdout, stderr = self.ssh.exec_command("mkdir nmontest")
+
+            if stdout.channel.recv_exit_status():
+                raise CustomError(stderr.read().decode('utf-8'))
+
+        nmon_cmd = config.nmon_path + "/nmon -F ./nmontest/test.nmon -t " + config.nmon_acquisition_interval+" -c " \
+                   + config.nmon_all_time
 
         stdin, stdout, stderr = self.ssh.exec_command(nmon_cmd)
 
@@ -59,9 +66,22 @@ class Server(object):
             err_msg = stderr.read().decode("utf-8")
             raise CustomError(err_msg)
 
+    def download_nmon_files(self, config):
+        if not hasattr(self, "ssh"):
+            raise CustomError("未与服务端进行连接")
+
+        trans = self.ssh.get_transport()
+        sftp = paramiko.SFTPClient.from_transport(trans)
+        files = sftp.listdir_attr("./nmontest")
+        for file in files:
+            sftp.get("./nmontest/" + file.filename, config.download_local_path + "\\" + file.filename)
+        trans.close()
+
 
 if __name__ == "__main__":
     server = Server(config.ip)
     server.connect(config.user, config.passwd)
     server.start_nmon_control(config)
+    server.download_nmon_files(config)
     server.close()
+
