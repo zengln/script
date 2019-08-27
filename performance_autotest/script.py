@@ -5,6 +5,8 @@ import subprocess
 from performance_autotest.customexception import CustomError
 
 
+__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command"]
+
 def get_all_script(script_path, file_extension):
     """
     获取当前文件夹下所有指定后缀文件
@@ -58,7 +60,7 @@ def lr_cmd(script_file):
     return cmd_list
 
 
-def exe_command(commands):
+def exe_commands(commands):
     for command in commands:
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if not result.returncode:
@@ -71,6 +73,17 @@ def exe_command(commands):
             raise CustomError(err_msg)
 
 
+def exe_command(command):
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if not result.returncode:
+        print(result.stdout.decode("gbk"))
+    else:
+        # 调用 lr 时,会抛出一个 log4cxx 的异常, 但是脚本正常跑完,结果保存成功,此异常暂时忽略
+        err_msg = result.stderr.decode('gbk')
+        if not err_msg.find("log4cxx") >= 0:
+            raise CustomError(err_msg)
+
+
 if __name__ == '__main__':
     lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
     jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
@@ -79,4 +92,4 @@ if __name__ == '__main__':
     print("lr=============================")
     lr_files = get_all_script(lr_path, ".lrs")
     lr_command = lr_cmd(lr_files)
-    exe_command(lr_command)
+    exe_commands(lr_command)
