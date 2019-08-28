@@ -39,14 +39,18 @@ def analyse_file(config):
 
 def download_file(config):
     log.info("读取配置文件")
-    hostname = config.ip
-    remotePath = config.remote_dir
+    num = int(config.remote_host_num)
     localPath = config.local_dir
-    uesrname = config.username
-    password = config.password
-    ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
-    files = ssh.get_all_file(remotePath, remotePath, [])
-    ssh.download_file(files, localPath, remotePath)
+    for i in range(0, num):
+        hostname = config.__getattribute__("ip" + str(i))
+        remotePath = config.__getattribute__("remote_dir" + str(i))
+        uesrname = config.__getattribute__("username" + str(i))
+        password = config.__getattribute__("password" + str(i))
+
+        ssh = SSHSokcet.sshSocket(hostname=hostname, username=uesrname, password=password)
+        files = ssh.get_all_file(remotePath, remotePath, [])
+        ssh.download_file(files, localPath, remotePath)
+        ssh.close()
 
 try:
     file_list = []
