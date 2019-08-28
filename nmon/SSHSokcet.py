@@ -63,3 +63,6 @@ class sshSocket(object):
             file.close()
             self.sftp.get(remotepath + "/" + filepath[root_index:], winfilepath)
 
+    def close(self):
+        self.sftp.close()
+
