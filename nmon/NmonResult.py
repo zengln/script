@@ -44,11 +44,19 @@ class NmonResult(object):
         sheet.col(2).width = 256 * 20
         sheet.col(3).width = 256 * 20
         sheet.col(4).width = 256 * 20
+        sheet.col(5).width = 256 * 20
+
+        style = xlwt.XFStyle()
+        alignment = xlwt.Alignment()
+        alignment.horz = 0x01
+        style.alignment = alignment
+
         sheet.write(0, 0, "文件路径")
         sheet.write(0, 1, "CPU")
         sheet.write(0, 2, "MEMORY")
-        sheet.write(0, 3, "NETWORK")
-        sheet.write(0, 4, "DISKI/O")
+        sheet.write(0, 3, "NET-READ(KB/s)")
+        sheet.write(0, 4, "NET-WRITE(KB/s)")
+        sheet.write(0, 5, "DISKWRITE(KB/s)")
         for index in range(0, file_num):
             workbook = xlrd.open_workbook(self.__nFiles[index])
             # 读取内容
@@ -58,10 +66,11 @@ class NmonResult(object):
             disk = self.get_avg_disk_write(workbook)
             # 写入新的 excel 中
             sheet.write(index + 1, 0, self.__nFiles[index])
-            sheet.write(index + 1, 1, cpu[2])
-            sheet.write(index + 1, 2, mem)
-            sheet.write(index + 1, 3, net[2])
-            sheet.write(index + 1, 4, disk)
+            sheet.write(index + 1, 1, cpu[2], style)
+            sheet.write(index + 1, 2, mem, style)
+            sheet.write(index + 1, 3, net[0], style)
+            sheet.write(index + 1, 4, net[1], style)
+            sheet.write(index + 1, 5, disk, style)
         wbk.save(path)
 
 
@@ -106,7 +115,7 @@ class NmonResult(object):
             sheet.write(row_index, 0, self.__nFiles[file_index])
             sheet.write(row_index, 1, cpu[2])
             sheet.write(row_index, 2, mem)
-            sheet.write(row_index, 3, net[2])
+            sheet.write(row_index, 3, net[1])
             sheet.write(row_index, 4, disk)
 
 
@@ -180,22 +189,33 @@ class NmonResult(object):
 
     '''
         Net
-        返回非 0 列的read、write、total平均值,放入数组中, 返回内容如下:
-        [read, write, total]
+        返回非 0 列的read、write平均值,放入数组中, 返回内容如下:
+        [read, write]
     '''
     def get_avg_net(self, workbook):
         sheet = workbook.sheet_by_name("NET")
-        results = []
-        if int(sheet.cell_value(1, 1)) != 0:
-            index_col = 1
-        else:
-            index_col = 2
-        for i in range(0, 3):
-            sum = 0
-            for index_row in range(1, sheet.nrows-5):
-                sum = sum + sheet.cell_value(index_row, index_col)
-            results.append(sum/(sheet.nrows-5))
-            index_col = index_col + 2
+        results = [0, 0]
+
+        write_index = -1
+        for index in range(1, sheet.ncols):
+            if "write" in sheet.cell_value(0, index):
+                write_index = index
+                break
+
+        # 获取最大 read 列均值
+        for i in range(1, write_index):
+            if not sheet.cell_value(sheet.nrows-3, i) == "":
+                read = round(sheet.cell_value(sheet.nrows-3, i), 2)
+                if read > results[0]:
+                    results[0] = read
+
+        for i in range(write_index, sheet.ncols):
+            if not sheet.cell_value(sheet.nrows-3, i) == "":
+                write = round(sheet.cell_value(sheet.nrows-3, i), 2)
+                if write > results[1]:
+                    results[1] = write
+
+
         return results
 
     '''
@@ -204,7 +224,7 @@ class NmonResult(object):
     '''
     def get_avg_disk_write(self, workbook):
         sheet = workbook.sheet_by_name("DISKWRITE")
-        return sheet.cell_value(sheet.nrows-4, 1)
+        return round(sheet.cell_value(sheet.nrows-4, 1), 2)
 
     '''
         DISKREAD
@@ -212,7 +232,7 @@ class NmonResult(object):
     '''
     def get_avg_disk_read(self, workbook):
         sheet = workbook.sheet_by_name("DISKREAD")
-        return sheet.cell_value(sheet.nrows-4, 1)
+        return round(sheet.cell_value(sheet.nrows-4, 1), 2)
 
     '''
         传入表名, 行数, 列数获取指定单元格内容
@@ -229,3 +249,8 @@ class NmonResult(object):
             raise RuntimeError("超过最大列数")
 
         return workbook.sheet_by_name(sheet_name).cell_value(row, col)
+
+
+if __name__ == "__main__":
+    nmon = NmonResult(r'D:\tmp\nmon\znzfdb1_190703_1936.nmon.xlsx')
+    nmon.get_file()
