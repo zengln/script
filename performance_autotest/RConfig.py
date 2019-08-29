@@ -50,6 +50,10 @@ class Config(object):
             raise CustomError("存放监控文件路径不能为空")
         elif section_item[0] == "remote_host_num":
             raise CustomError("后台服务器数量不能为空")
+        elif section_item[0] == "jmeter_script_dir":
+            self.__setattr__(section_item[0], "")
+        elif section_item[0] == "loadrunner_script_dir":
+            self.__setattr__(section_item[0], "")
 
         return True
 
