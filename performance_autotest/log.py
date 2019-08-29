@@ -6,6 +6,7 @@
 import logging
 
 from performance_autotest.customexception import CustomError
+from performance_autotest.RConfig import config
 
 
 class Log(object):
@@ -50,4 +51,8 @@ class Log(object):
         return self.log
 
 
-logger = Log().get_log()
+if hasattr(config, "debug_mode") and config.debug_mode == str(True):
+    logger = Log(True).get_log()
+    logger.debug("test")
+else:
+    logger = Log().get_log()
