@@ -3,6 +3,7 @@
 import os
 import subprocess
 from performance_autotest.customexception import CustomError
+from performance_autotest.log import logger
 
 
 __all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command"]
@@ -20,6 +21,8 @@ def get_all_script(script_path, file_extension):
         raise CustomError("路径错误,文件夹不存在")
 
     files = os.listdir(script_path)
+    logger.debug("当前路径"+script_path+"下所有文件与文件夹")
+    logger.debug(files)
     for file in files:
         if not os.path.isfile(script_path + "\\" + file):
             continue
@@ -29,6 +32,8 @@ def get_all_script(script_path, file_extension):
     if not script_files.__len__():
         raise CustomError("路径下无后缀为%s的脚本文件" % file_extension)
 
+    logger.debug("所有脚本文件")
+    logger.debug(script_path)
     return script_files
 
 
@@ -44,6 +49,8 @@ def jmeter_cmd(script_file, path):
         command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl"
         cmd_list.append(command)
 
+    logger.debug("生成的 jmeter 命令")
+    logger.debug(cmd_list)
     return cmd_list
 
 
@@ -58,14 +65,17 @@ def lr_cmd(script_file, path):
         command = cmd + path + os.path.sep + file + ".lrs" + " -Run -ResultName " + path + os.path.sep + file
         cmd_list.append(command)
 
+    logger.debug("生成的 lr 命令")
+    logger.debug(cmd_list)
     return cmd_list
 
 
 def exe_commands(commands):
     for command in commands:
+        logger.debug("正在执行命令:"+command)
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if not result.returncode:
-            print(result.stdout.decode("gbk"))
+            logger.info(result.stdout.decode("gbk"))
         else:
             # 调用 lr 时,会抛出一个 log4cxx 的异常, 但是脚本正常跑完,结果保存成功,此异常暂时忽略
             err_msg = result.stderr.decode('gbk')
@@ -75,9 +85,10 @@ def exe_commands(commands):
 
 
 def exe_command(command):
+    logger.debug("正在执行命令:"+command)
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if not result.returncode:
-        print(result.stdout.decode("gbk"))
+        logger.info(result.stdout.decode("gbk"))
     else:
         # 调用 lr 时,会抛出一个 log4cxx 的异常, 但是脚本正常跑完,结果保存成功,此异常暂时忽略
         err_msg = result.stderr.decode('gbk')
