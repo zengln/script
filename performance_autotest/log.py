@@ -36,7 +36,7 @@ class Log(object):
         else:
             handler_console.setLevel(logging.INFO)
 
-        fmt = logging.Formatter("%(asctime)s %(filename)s-%(funcName)s %(levelname)s:%(message)s",
+        fmt = logging.Formatter("[%(asctime)s %(levelname)5s %(filename)s-%(funcName)s]: %(message)s ",
                                 datefmt="%Y-%m-%d %H:%M:%S")
 
         handler_console.setFormatter(fmt)
