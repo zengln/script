@@ -7,6 +7,7 @@ from performance_autotest.customexception import CustomError
 
 __all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command"]
 
+
 def get_all_script(script_path, file_extension):
     """
     获取当前文件夹下所有指定后缀文件
@@ -31,7 +32,7 @@ def get_all_script(script_path, file_extension):
     return script_files
 
 
-def jmeter_cmd(script_file):
+def jmeter_cmd(script_file, path):
     """
     获取路径生成执行脚本命令
     """
@@ -40,13 +41,13 @@ def jmeter_cmd(script_file):
     cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
     # cmd = r"jmeter -n -t "
     for file in script_file:
-        command = cmd + jmeter_path + os.path.sep + file + ".jmx" + " -l " + jmeter_path + os.path.sep + file + ".jtl"
+        command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl"
         cmd_list.append(command)
 
     return cmd_list
 
 
-def lr_cmd(script_file):
+def lr_cmd(script_file, path):
     """
     获取路径生成执行脚本命令
     """
@@ -54,7 +55,7 @@ def lr_cmd(script_file):
     # TODO cmd 参数化
     cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
     for file in script_file:
-        command = cmd + lr_path + os.path.sep + file + ".lrs" + " -Run -ResultName " + lr_path + os.path.sep + file
+        command = cmd + path + os.path.sep + file + ".lrs" + " -Run -ResultName " + path + os.path.sep + file
         cmd_list.append(command)
 
     return cmd_list
@@ -88,8 +89,8 @@ if __name__ == '__main__':
     lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
     jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
     files_jmeter = get_all_script(jmeter_path, ".jmx")
-    jmeter_command = jmeter_cmd(files_jmeter)
+    jmeter_command = jmeter_cmd(files_jmeter, jmeter_path)
     print("lr=============================")
     lr_files = get_all_script(lr_path, ".lrs")
-    lr_command = lr_cmd(lr_files)
+    lr_command = lr_cmd(lr_files, lr_path)
     exe_commands(lr_command)
