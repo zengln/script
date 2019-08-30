@@ -8,8 +8,8 @@ import os
 import xlrd
 from xlutils.copy import copy
 
-excle_path = r'D:\MyDocument\nmon\新建文件夹\excel文件夹'
-txt_path = r'D:\MyDocument\nmon\新建文件夹\txt文件'
+excle_path = r'C:\Users\zengjn\Desktop\新建文件夹 (2)\excel文件夹'
+txt_path = r'C:\Users\zengjn\Desktop\新建文件夹 (2)\txt文件'
 
 
 def get_all_file(path):
@@ -92,6 +92,7 @@ def write_to_excel(match_list):
                 yq_index = row_index
                 break
             elif row_index == row_num - 1:
+                yq_index = row_num
                 # 新增行
                 ws.write(row_num, 0, "yq_respcode_xz")
                 ws.write(row_num + 1, 0, "yq_respmsg_xz")
