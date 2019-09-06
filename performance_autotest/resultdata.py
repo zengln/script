@@ -3,6 +3,7 @@
 # @Author  : zengln
 # @File    : resultdata.py
 
+import json
 from performance_autotest.customexception import CustomError
 
 
@@ -232,7 +233,19 @@ class NmonAnalyse(FileAnalyse):
 
 
 class JmeterAnalyse(FileAnalyse):
-    pass
+
+    def __init__(self):
+        self.dict_data = []
+
+    def file_analyst(self, file):
+        with open(file, "r") as jmetrfile:
+            all_data_dict = json.load(jmetrfile)
+            keys = all_data_dict.keys()
+            for key in keys:
+                if not key == "Total":
+                    self.dict_data.append(all_data_dict[key])
+
+        print(self.dict_data)
 
 
 class LoadRunnerAnalyse(FileAnalyse):
@@ -241,10 +254,13 @@ class LoadRunnerAnalyse(FileAnalyse):
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
-    nmonfile = r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon'
-    nmon = NmonAnalyse()
-    nmon.file_analyst(nmonfile)
-    print(nmon.cpu)
-    print(nmon.mem)
-    print(nmon.disk)
-    print(nmon.net)
+    # nmonfile = r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon'
+    # nmon = NmonAnalyse()
+    # nmon.file_analyst(nmonfile)
+    # print(nmon.cpu)
+    # print(nmon.mem)
+    # print(nmon.disk)
+    # print(nmon.net)
+    jmetrfile = r"C:\Users\zengjn22046\Desktop\jemter\get\statistics.json"
+    jmeter = JmeterAnalyse()
+    jmeter.file_analyst(jmetrfile)
