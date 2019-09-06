@@ -24,7 +24,7 @@ class NmonAnalyse(FileAnalyse):
         self.disk = float(0)
         self.net = float(0)
 
-    def file_analyst(self, file):
+    def file_analyse(self, file):
         """
         Nmon 文件解析入口
         """
@@ -237,7 +237,7 @@ class JmeterAnalyse(FileAnalyse):
     def __init__(self):
         self.dict_data = []
 
-    def file_analyst(self, file):
+    def file_analyse(self, file):
         with open(file, "r") as jmetrfile:
             all_data_dict = json.load(jmetrfile)
             keys = all_data_dict.keys()
@@ -245,22 +245,25 @@ class JmeterAnalyse(FileAnalyse):
                 if not key == "Total":
                     self.dict_data.append(all_data_dict[key])
 
-        print(self.dict_data)
-
 
 class LoadRunnerAnalyse(FileAnalyse):
-    pass
+
+    def __init__(self):
+        pass
+
+    def file_analyse(self, file):
+        pass
 
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
     # nmonfile = r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon'
     # nmon = NmonAnalyse()
-    # nmon.file_analyst(nmonfile)
+    # nmon.file_analyse(nmonfile)
     # print(nmon.cpu)
     # print(nmon.mem)
     # print(nmon.disk)
     # print(nmon.net)
     jmetrfile = r"C:\Users\zengjn22046\Desktop\jemter\get\statistics.json"
     jmeter = JmeterAnalyse()
-    jmeter.file_analyst(jmetrfile)
+    jmeter.file_analyse(jmetrfile)
