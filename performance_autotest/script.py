@@ -46,7 +46,8 @@ def jmeter_cmd(script_file, path):
     cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
     # cmd = r"jmeter -n -t "
     for file in script_file:
-        command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl"
+        command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl -e -o " \
+                  + path + os.path.sep + file
         cmd_list.append(command)
 
     logger.debug("生成的 jmeter 命令")
@@ -97,11 +98,12 @@ def exe_command(command):
 
 
 if __name__ == '__main__':
-    lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
+    # lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
     jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
     files_jmeter = get_all_script(jmeter_path, ".jmx")
     jmeter_command = jmeter_cmd(files_jmeter, jmeter_path)
-    print("lr=============================")
-    lr_files = get_all_script(lr_path, ".lrs")
-    lr_command = lr_cmd(lr_files, lr_path)
-    exe_commands(lr_command)
+    #print("lr=============================")
+    #lr_files = get_all_script(lr_path, ".lrs")
+    #lr_command = lr_cmd(lr_files, lr_path)
+    print(jmeter_command[1])
+    # exe_command(jmeter_command[1])
