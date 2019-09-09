@@ -4,6 +4,10 @@
 # @File    : resultdata.py
 
 import json
+import re
+import os.path
+
+from performance_autotest.log import logger
 from performance_autotest.customexception import CustomError
 
 
@@ -27,7 +31,9 @@ class NmonAnalyse(FileAnalyse):
     def file_analyse(self, file):
         """
         Nmon 文件解析入口
+        :param file nmon 文件全路径
         """
+        logger.info("%s 文件数据解析开始" % os.path.basename(file))
         cpu_line = []
         mem_line = []
         disk_line = []
@@ -50,10 +56,15 @@ class NmonAnalyse(FileAnalyse):
                     net_line.append(line)
 
         # 分别对关键数据进行处理
+        logger.info("开始提取cpu数据")
         self.fetch_cpu(cpu_line)
+        logger.info("开始提取内存数据")
         self.fetch_mem(mem_line)
+        logger.info("开始提取磁盘数据")
         self.fetch_disk(disk_line)
+        logger.info("开始提取网络数据")
         self.fetch_net(net_line)
+        logger.info("%s 文件数据解析结束" % os.path.basename(file))
 
     def fetch_cpu(self, lines):
         """
@@ -66,6 +77,7 @@ class NmonAnalyse(FileAnalyse):
             # total = sys + user
             cpu_sum += (float(cpus[3]) + float(cpus[2]))
         self.cpu = round(cpu_sum / len(lines), 2)
+        logger.debug("cpu: %f" % self.cpu)
 
     def fetch_mem(self, lines):
         """
@@ -90,6 +102,7 @@ class NmonAnalyse(FileAnalyse):
                 raise CustomError("暂不支持此内存页面数据读取")
 
         self.mem = (round(mem_sum / len(lines), 2), round(mem_virtual_sum / len(lines), 2))
+        logger.debug("mem: 不含虚拟内存的使用率 %f, 包含虚拟内存的使用率 %f" % (self.mem[0], self.mem[1]))
 
     def fetch_disk(self, lines):
         """
@@ -164,6 +177,8 @@ class NmonAnalyse(FileAnalyse):
 
         self.disk = (round(diskread_sum / diskread_num, 2), round(diskwrite_sum / diskwrite_num, 2),
                      round(diskio_sum / diskio_num, 2), round(diskbusy_max, 2))
+        logger.debug("disk: diskread %f, diskwrite %f, diskio %f, diskbusy %f" % (
+            self.disk[0], self.disk[1], self.disk[2], self.disk[3]))
 
     def fetch_net(self, lines):
         """
@@ -230,20 +245,51 @@ class NmonAnalyse(FileAnalyse):
                 net_write_max = net_write_avg
 
         self.net = (round(net_read_max, 2), round(net_write_max, 2))
+        logger.debug("net: 网络读取最大值 %f, 网络写入最大值 %f" % (self.net[0], self.net[1]))
 
 
 class JmeterAnalyse(FileAnalyse):
 
     def __init__(self):
-        self.dict_data = []
+        # 保存解析结果
+        self.result_dict = {}
 
     def file_analyse(self, file):
-        with open(file, "r") as jmetrfile:
-            all_data_dict = json.load(jmetrfile)
-            keys = all_data_dict.keys()
-            for key in keys:
-                if not key == "Total":
-                    self.dict_data.append(all_data_dict[key])
+        """
+        解析jmeter报告
+        :param file: jmeter报告所在目录
+        """
+        logger.info("开始解析%s jmeter结果文件" % os.path.basename(file))
+        file_all_path = file + r"\content\js\dashboard.js"
+
+        with open(file_all_path, "r") as jmeterfile:
+            text = jmeterfile.read()
+            static_data_match_result = re.match(r'[\s\S]*statisticsTable"\),(.*?), function', text)
+
+            if static_data_match_result is not None:
+                static_json_data = static_data_match_result.group(1).strip()
+                logger.debug("取到 %s 的压测结果数据为: %s" % (os.path.basename(file), static_json_data))
+                static_data = json.loads(static_json_data)
+                logger.debug("转化成json格式:%s" % static_data)
+
+                if "items" not in static_data.keys():
+                    raise CustomError("%s获取压测结果失败,提取到的数据中未找到item标签" % os.path.basename(file))
+
+                static_items_data = static_data["items"]
+                logger.debug("提取到的数据为: %s" % static_items_data)
+                for static_item_data in static_items_data:
+                    tmp_data = static_item_data['data']
+                    # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
+                    tmp_list = [tmp_data[1], tmp_data[10], tmp_data[3], tmp_data[4], tmp_data[5], tmp_data[6]]
+                    # dict: {name:list}
+                    self.result_dict[tmp_data[0]] = tmp_list
+
+                logger.debug("%s 提取结果 %s" % (os.path.basename(file), self.result_dict))
+
+            else:
+                raise CustomError("%s获取压测结果失败,未找到匹配数据" % os.path.basename(file))
+
+        logger.info("jmeter 结果文件解析结束")
 
 
 class LoadRunnerAnalyse(FileAnalyse):
@@ -264,6 +310,6 @@ if __name__ == "__main__":
     # print(nmon.mem)
     # print(nmon.disk)
     # print(nmon.net)
-    jmetrfile = r"C:\Users\zengjn22046\Desktop\jemter\get\statistics.json"
+    jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
     jmeter = JmeterAnalyse()
     jmeter.file_analyse(jmetrfile)

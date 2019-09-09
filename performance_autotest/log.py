@@ -53,6 +53,5 @@ class Log(object):
 
 if hasattr(config, "debug_mode") and config.debug_mode == str(True):
     logger = Log(True).get_log()
-    logger.debug("test")
 else:
     logger = Log().get_log()
