@@ -15,14 +15,18 @@ class FileAnalyse(object):
     """
     文件解析基础接口
     """
+    def __init__(self):
+        self.name = None
+
     def file_analyse(self, file):
-        pass
+        self.name = os.path.basename(file)
 
 
 class NmonAnalyse(FileAnalyse):
 
     def __init__(self):
         # 初始化变量
+        super().__init__()
         self.cpu = float(0)
         self.mem = float(0)
         self.disk = float(0)
@@ -34,6 +38,7 @@ class NmonAnalyse(FileAnalyse):
         :param file nmon 文件全路径
         """
         logger.info("%s 文件数据解析开始" % os.path.basename(file))
+        super().file_analyse(file)
         cpu_line = []
         mem_line = []
         disk_line = []
@@ -252,6 +257,7 @@ class JmeterAnalyse(FileAnalyse):
 
     def __init__(self):
         # 保存解析结果
+        super().__init__()
         self.result_dict = {}
 
     def file_analyse(self, file):
@@ -260,6 +266,7 @@ class JmeterAnalyse(FileAnalyse):
         :param file: jmeter报告所在目录
         """
         logger.info("开始解析%s jmeter结果文件" % os.path.basename(file))
+        super().file_analyse(file)
         file_all_path = file + r"\content\js\dashboard.js"
 
         with open(file_all_path, "r") as jmeterfile:
@@ -295,6 +302,7 @@ class JmeterAnalyse(FileAnalyse):
 class LoadRunnerAnalyse(FileAnalyse):
 
     def __init__(self):
+        super().__init__()
         self.result_dict = {}
 
     def file_analyse(self, file):
@@ -302,6 +310,8 @@ class LoadRunnerAnalyse(FileAnalyse):
         解析 Loadrunner 报告
         :param file: loadrunner 报告所在路径
         """
+        logger.info("开始解析 %s loadrunner 报告" % os.path.basename(file))
+        super().file_analyse(file)
         file_all_path = file + r'\An_Report1\summary.html'
         with open(file_all_path, "r") as loadrunnerfile:
             text = loadrunnerfile.read()
@@ -341,7 +351,7 @@ class LoadRunnerAnalyse(FileAnalyse):
             # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
             data_list = [all_tsc, tps, error, resp_avg, resp_min, resp_max]
             self.result_dict[os.path.basename(file)] = data_list
-
+            logger.info("loadrunner 报告解析结束")
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
@@ -358,4 +368,3 @@ if __name__ == "__main__":
     loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res-5'
     loadrunner = LoadRunnerAnalyse()
     loadrunner.file_analyse(loadrunner_file)
-    print(loadrunner.result_dict)
