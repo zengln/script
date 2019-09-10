@@ -42,3 +42,6 @@ nmon监控支持服务器集群
 添加jmeter报告文件解析,jmeter5.1版本后才存在statistics.json文件,因此数据提取改为从js文件中提取。并添加运行日志
 
 修改script 中 jmeter命令,在执行完成后生成自动生成报告
+
+#### 20190910
+添加loadrunner报告解析
