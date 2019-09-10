@@ -77,7 +77,7 @@ class NmonAnalyse(FileAnalyse):
             # total = sys + user
             cpu_sum += (float(cpus[3]) + float(cpus[2]))
         self.cpu = round(cpu_sum / len(lines), 2)
-        logger.debug("cpu: %f" % self.cpu)
+        logger.debug("cpu: %.2f%%" % self.cpu)
 
     def fetch_mem(self, lines):
         """
@@ -102,11 +102,11 @@ class NmonAnalyse(FileAnalyse):
                 raise CustomError("暂不支持此内存页面数据读取")
 
         self.mem = (round(mem_sum / len(lines), 2), round(mem_virtual_sum / len(lines), 2))
-        logger.debug("mem: 不含虚拟内存的使用率 %f, 包含虚拟内存的使用率 %f" % (self.mem[0], self.mem[1]))
+        logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
 
     def fetch_disk(self, lines):
         """
-        获取 disk 的关键数据包括: disk-read(KB/S),disk-write(KB/S),io(每秒操作io次数),disk-busy(%)
+        获取 disk 的关键数据包括: disk-read(KB/S),disk-write(KB/S),io(io/s),disk-busy(%)
         :param lines: 带 disk 关键数据行
         """
         # 累加和
@@ -177,12 +177,12 @@ class NmonAnalyse(FileAnalyse):
 
         self.disk = (round(diskread_sum / diskread_num, 2), round(diskwrite_sum / diskwrite_num, 2),
                      round(diskio_sum / diskio_num, 2), round(diskbusy_max, 2))
-        logger.debug("disk: diskread %f, diskwrite %f, diskio %f, diskbusy %f" % (
+        logger.debug("disk: diskread %.2f, diskwrite %.2f, diskio %.2f, diskbusy %.2f%%" % (
             self.disk[0], self.disk[1], self.disk[2], self.disk[3]))
 
     def fetch_net(self, lines):
         """
-        获取 net read 和 write 均值
+        获取 net read(KB/s) 和 write(KB/s) 均值
         :param lines:包含 net 关键数据的行
         :return:
         """
@@ -245,7 +245,7 @@ class NmonAnalyse(FileAnalyse):
                 net_write_max = net_write_avg
 
         self.net = (round(net_read_max, 2), round(net_write_max, 2))
-        logger.debug("net: 网络读取最大值 %f, 网络写入最大值 %f" % (self.net[0], self.net[1]))
+        logger.debug("net: 网络读取最大值 %.2f, 网络写入最大值 %.2f" % (self.net[0], self.net[1]))
 
 
 class JmeterAnalyse(FileAnalyse):
@@ -295,10 +295,52 @@ class JmeterAnalyse(FileAnalyse):
 class LoadRunnerAnalyse(FileAnalyse):
 
     def __init__(self):
-        pass
+        self.result_dict = {}
 
     def file_analyse(self, file):
-        pass
+        """
+        解析 Loadrunner 报告
+        :param file: loadrunner 报告所在路径
+        """
+        file_all_path = file + r'\An_Report1\summary.html'
+        with open(file_all_path, "r") as loadrunnerfile:
+            text = loadrunnerfile.read()
+            tps_match = re.match(r'[\s\S]*headers="LraPer second".*?8">(.*?)</td>', text)
+            logger.debug("tps_match is None: %s" % str(False if(tps_match is not None) else True))
+            pass_match = re.match(r'[\s\S]*headers="LraPass".*?8">(.*?)</td>', text)
+            logger.debug("pass_match is None: %s" % str(False if (pass_match is not None) else True))
+            fail_match = re.match(r'[\s\S]*headers="LraFail".*?8">(.*?)</td>', text)
+            logger.debug("fail_match is None: %s" % str(False if (fail_match is not None) else True))
+            resp_avg_match = re.match(r'[\s\S]*headers="LraAverage".*?8">(.*?)</td>', text)
+            logger.debug("resp_avg_match is None: %s" % str(False if (resp_avg_match is not None) else True))
+            resp_min_match = re.match(r'[\s\S]*headers="LraMinimum".*?8">(.*?)</td>', text)
+            logger.debug("resp_min_match is None: %s" % str(False if (resp_min_match is not None) else True))
+            resp_max_match = re.match(r'[\s\S]*headers="LraMaximum".*?8">(.*?)</td>', text)
+            logger.debug("resp_max_match is None: %s" % str(False if (resp_max_match is not None) else True))
+
+            if tps_match is None or pass_match is None or fail_match is None or resp_avg_match is None or resp_min_match is None or resp_max_match is None:
+                raise CustomError("%s 有未匹配到的数据" % os.path.basename(file))
+
+            # 长整数取到的数字带有逗号,例如1024是1,024,在取数字时,先将逗号去掉
+            tps = tps_match.group(1).replace(",", "")
+            logger.debug("tps: %s" % tps)
+            pass_tsc = pass_match.group(1).replace(",", "")
+            logger.debug("pass transaction: %s" % pass_tsc)
+            fail_tsc = fail_match.group(1).replace(",", "")
+            logger.debug("fail transaction: %s" % fail_tsc)
+            # 时间转化成 ms 单位
+            resp_avg = float(resp_avg_match.group(1).replace(",", "")) * 1000
+            logger.debug("resp average time : %sms" % resp_avg)
+            resp_max = float(resp_max_match.group(1).replace(",", "")) * 1000
+            logger.debug("resp max time: %sms" % resp_max)
+            resp_min = float(resp_min_match.group(1).replace("", "")) * 1000
+            logger.debug("resp min time: %sms" % resp_min)
+
+            all_tsc = str(int(fail_tsc) + int(pass_tsc))
+            error = round(int(fail_tsc)/int(all_tsc), 2)
+            # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
+            data_list = [all_tsc, tps, error, resp_avg, resp_min, resp_max]
+            self.result_dict[os.path.basename(file)] = data_list
 
 
 if __name__ == "__main__":
@@ -310,6 +352,10 @@ if __name__ == "__main__":
     # print(nmon.mem)
     # print(nmon.disk)
     # print(nmon.net)
-    jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
-    jmeter = JmeterAnalyse()
-    jmeter.file_analyse(jmetrfile)
+    # jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
+    # jmeter = JmeterAnalyse()
+    # jmeter.file_analyse(jmetrfile)
+    loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res-5'
+    loadrunner = LoadRunnerAnalyse()
+    loadrunner.file_analyse(loadrunner_file)
+    print(loadrunner.result_dict)
