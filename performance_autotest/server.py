@@ -23,6 +23,8 @@ class Server(object):
 
         self.server_name = ip
         self.path = path
+        # 保存下载 nmon 文件全路径
+        self.file_list = []
 
     def connect(self, user, passwd):
         """
@@ -90,6 +92,7 @@ class Server(object):
         for file in files:
             logger.debug("正在下载:"+file.filename)
             sftp.get("./"+self.server_name+"/" + file.filename, download_local_path + "\\" + file.filename)
+            self.file_list.append(download_local_path + "\\" + file.filename)
         trans.close()
 
         logger.info(self.server_name+"监控文件下载完成")
