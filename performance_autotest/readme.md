@@ -45,3 +45,8 @@ nmon监控支持服务器集群
 
 #### 20190910
 添加loadrunner报告解析
+
+#### 20190911
+Server类增加属性 file_list，保存下载nmon文件全路径
+resultdata 修改几个需要比较值的列,第一列的值转为float。防止后续进行比较时出现异常
+script, server 优化log显示，增加loadrunner解析命令,保存压测结果文件存放路径
