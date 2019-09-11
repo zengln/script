@@ -166,7 +166,7 @@ class NmonAnalyse(FileAnalyse):
                 # 获取 busi 每列初始值
                 if len(diskbusy_avg) == 0:
                     for disk_busy_line_index in range(2, len(disks)):
-                        diskbusy_avg.append(disks[disk_busy_line_index])
+                        diskbusy_avg.append(float(disks[disk_busy_line_index]))
                 else:
                     diskbusy_num += 1
                     # 计算 busi 每列均值
@@ -224,7 +224,7 @@ class NmonAnalyse(FileAnalyse):
                     net_read_len_index = 0
                     for net_read_num_index in net_read_index:
                         if avg_read == 1:
-                            net_read.append(disks[net_read_num_index])
+                            net_read.append(float(disks[net_read_num_index]))
                         else:
                             net_read[net_read_len_index] = (float(net_read[net_read_len_index]) * (avg_read - 1) + float(
                                 disks[net_read_num_index])) / avg_read
@@ -235,7 +235,7 @@ class NmonAnalyse(FileAnalyse):
                     net_write_len_index = 0
                     for net_write_num_index in net_write_index:
                         if avg_write == 1:
-                            net_write.append(disks[net_write_num_index])
+                            net_write.append(float(disks[net_write_num_index]))
                         else:
                             net_write[net_write_len_index] = (float(net_write[net_write_len_index]) * (
                                         avg_write - 1) + float(disks[net_write_num_index])) / avg_write
