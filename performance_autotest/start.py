@@ -12,14 +12,11 @@ from performance_autotest.script import *
 from performance_autotest.RConfig import config
 from performance_autotest.server import Server
 from performance_autotest.log import logger
+from performance_autotest.resultdata import NmonAnalyse, JmeterAnalyse, LoadRunnerAnalyse
 
 """
     入口脚本
 """
-# TODO 下载监控文件
-# TODO 解析监控文件、结果文件
-# TODO 提取数据
-# TODO 生成简易报告
 
 
 def check_dir(path):
@@ -65,28 +62,90 @@ def servers_close(server_list):
     logger.info("====后台服务器完全关闭====")
 
 
+def analyse_nmon(server_list, nmon_result_list):
+    logger.info("开始解析nmon文件")
+
+    for server in server_list:
+        for filepath in server.file_list:
+            nmon = NmonAnalyse()
+            nmon.file_analyse(filepath)
+            nmon_result_list.append(nmon)
+
+    logger.info("解析nmon文件结束")
+    return nmon_result_list
+
+
+def analyse_jmeter(jmeter_result_list):
+    logger.info("开始解析jmeter文件")
+
+    for jmeter_file in jmeter_result_list:
+        jmeter = JmeterAnalyse()
+        jmeter.file_analyse(jmeter_file)
+
+    logger.info("解析jmeter文件结束")
+
+
+def analyse_loadrunner(loadrunner_result_list):
+    logger.info("开始解析loadrunner文件")
+
+    for loadrunner_file in loadrunner_result_list:
+        loadrunner = LoadRunnerAnalyse()
+        loadrunner.file_analyse(loadrunner_file)
+
+    logger.info("解析loadrunner文件结束")
+
 try:
+    # 保存结果文件路径
+    result_nmon_list = []
+    result_jmeter_list = []
+    result_loadrunner_list = []
+
     check_dir(config.download_local_path)
 
+    # 生成脚本运行命令
     if not config.jmeter_script_dir == "":
         script_path = config.jmeter_script_dir
         script_file = get_all_script(script_path, ".jmx")
-        script_command = jmeter_cmd(script_file, config.jmeter_script_dir)
+        script_command, result_jmeter_list = jmeter_cmd(script_file, config.jmeter_script_dir)
     elif not config.loadrunner_script_dir == "":
         script_path = config.loadrunner_script_dir
         script_file = get_all_script(script_path, ".lrs")
-        script_command = lr_cmd(script_file, config.loadrunner_script_dir)
+        script_command, result_analyse_command, result_loadrunner_list = lr_cmd(script_file, config.loadrunner_script_dir)
     else:
         raise CustomError("脚本路径不能全为空")
 
+    # 连接后台服务器,运行脚本,开启监控
     servers = []
     servers_connect(servers)
     for command in script_command:
-        # exe_command(command)
         index = script_command.index(command)
         servers_start_nmon_control(script_file[index])
+        exe_command(command)
 
+    # 下载nmon文件,关闭后台连接
     servers_close(servers)
+
+    # 如果是loadrunner需要额外调用命令,解析文件
+    if not config.loadrunner_script_dir == "" and config.jmeter_script_dir == "":
+        if len(result_analyse_command) == 0:
+            raise CustomError("无法获取 loadrunner 解析命令")
+        for command in result_analyse_command:
+            exe_command(command)
+
+    analyse_nmon(servers, result_nmon_list)
+    if not config.jmeter_script_dir == "":
+        if len(result_jmeter_list) == 0:
+            raise CustomError("jmeter 解析时出现异常,找不到结果文件所在路径")
+        analyse_jmeter(result_jmeter_list)
+    elif not config.loadrunner_script_dir == "":
+        if len(result_loadrunner_list) == 0:
+            raise CustomError("loadrunner 解析时出现异常,找不到结果文件所在路径")
+        analyse_loadrunner(result_loadrunner_list)
+    else:
+        raise CustomError("脚本路径不能全为空,解析结果失败")
+
+    # TODO 生成报告
+    print("生成报告")
 except Exception:
     error_msg = traceback.format_exc()
     logger.error(error_msg)
