@@ -65,10 +65,11 @@ class Server(object):
                 raise CustomError(stderr.read().decode('utf-8'))
 
         nmon_filename = filename + ".nmon"
-        nmon_cmd = (self.path + "/nmon -F ./" + self.server_name + "/" + nmon_filename + " -t "
+        nmon_cmd = (self.path + "/nmon -F ./" + self.server_name + "/" + nmon_filename + " -t -s "
                     + config.nmon_acquisition_interval + " -c " + config.nmon_all_time)
 
         logger.debug("正在开启"+self.server_name+"监控,监控结果文件名为:"+nmon_filename)
+        logger.debug("监控命令 %s" % nmon_cmd)
         stdin, stdout, stderr = self.ssh.exec_command(nmon_cmd)
 
         if stdout.channel.recv_exit_status():
@@ -95,7 +96,7 @@ class Server(object):
             self.file_list.append(download_local_path + "\\" + file.filename)
         trans.close()
 
-        logger.info(self.server_name+"监控文件下载完成")
+        logger.info("%s 监控文件下载完成, 文件保存在 %s" % (self.server_name, download_local_path))
 
 
 if __name__ == "__main__":

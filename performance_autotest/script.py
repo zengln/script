@@ -33,7 +33,7 @@ def get_all_script(script_path, file_extension):
         raise CustomError("路径下无后缀为%s的脚本文件" % file_extension)
 
     logger.debug("所有脚本文件")
-    logger.debug(script_path)
+    logger.debug(script_files)
     return script_files
 
 
@@ -42,6 +42,7 @@ def jmeter_cmd(script_file, path):
     获取路径生成执行脚本命令
     """
     cmd_list = []
+    result_file_list = []
     # TODO cmd 参数化
     cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
     # cmd = r"jmeter -n -t "
@@ -49,10 +50,13 @@ def jmeter_cmd(script_file, path):
         command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl -e -o " \
                   + path + os.path.sep + file
         cmd_list.append(command)
+        result_file_list.append(path + os.path.sep + file)
 
     logger.debug("生成的 jmeter 命令")
     logger.debug(cmd_list)
-    return cmd_list
+    logger.debug(("jmeter结果文件保存路径"))
+    logger.debug(result_file_list)
+    return cmd_list, result_file_list
 
 
 def lr_cmd(script_file, path):
@@ -60,15 +64,25 @@ def lr_cmd(script_file, path):
     获取路径生成执行脚本命令
     """
     cmd_list = []
+    cmd_anaylise_list = []
+    result_file_list = []
     # TODO cmd 参数化
     cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
+    cmd_analyse = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\AnalysisUI -RESULTPATH '
     for file in script_file:
         command = cmd + path + os.path.sep + file + ".lrs" + " -Run -ResultName " + path + os.path.sep + file
+        command_analyse = cmd_analyse + path + os.path.sep + file + os.path.sep + file + ".lrr -TEMPLATENAME html"
         cmd_list.append(command)
+        cmd_anaylise_list.append(command_analyse)
+        result_file_list.append(path + os.path.sep + file)
 
     logger.debug("生成的 lr 命令")
     logger.debug(cmd_list)
-    return cmd_list
+    logger.debug("生成的 lr 解析命令")
+    logger.debug(cmd_anaylise_list)
+    logger.debug("loadrunner 结果文件保存路径")
+    logger.debug(result_file_list)
+    return cmd_list, cmd_anaylise_list, result_file_list
 
 
 def exe_commands(commands):
