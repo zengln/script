@@ -311,47 +311,147 @@ class LoadRunnerAnalyse(FileAnalyse):
         :param file: loadrunner 报告所在路径
         """
         logger.info("开始解析 %s loadrunner 报告" % os.path.basename(file))
+
         super().file_analyse(file)
-        file_all_path = file + r'\An_Report1\summary.html'
-        with open(file_all_path, "r") as loadrunnerfile:
-            text = loadrunnerfile.read()
-            tps_match = re.match(r'[\s\S]*headers="LraPer second".*?8">(.*?)</td>', text)
-            logger.debug("tps_match is None: %s" % str(False if(tps_match is not None) else True))
-            pass_match = re.match(r'[\s\S]*headers="LraPass".*?8">(.*?)</td>', text)
-            logger.debug("pass_match is None: %s" % str(False if (pass_match is not None) else True))
-            fail_match = re.match(r'[\s\S]*headers="LraFail".*?8">(.*?)</td>', text)
-            logger.debug("fail_match is None: %s" % str(False if (fail_match is not None) else True))
-            resp_avg_match = re.match(r'[\s\S]*headers="LraAverage".*?8">(.*?)</td>', text)
-            logger.debug("resp_avg_match is None: %s" % str(False if (resp_avg_match is not None) else True))
-            resp_min_match = re.match(r'[\s\S]*headers="LraMinimum".*?8">(.*?)</td>', text)
-            logger.debug("resp_min_match is None: %s" % str(False if (resp_min_match is not None) else True))
-            resp_max_match = re.match(r'[\s\S]*headers="LraMaximum".*?8">(.*?)</td>', text)
-            logger.debug("resp_max_match is None: %s" % str(False if (resp_max_match is not None) else True))
 
-            if tps_match is None or pass_match is None or fail_match is None or resp_avg_match is None or resp_min_match is None or resp_max_match is None:
-                raise CustomError("%s 有未匹配到的数据" % os.path.basename(file))
+        tps_list = []
+        resp_avg_list = []
+        resp_min_list = []
+        resp_max_list = []
 
-            # 长整数取到的数字带有逗号,例如1024是1,024,在取数字时,先将逗号去掉
-            tps = tps_match.group(1).replace(",", "")
-            logger.debug("tps: %s" % tps)
-            pass_tsc = pass_match.group(1).replace(",", "")
+        summary_html_path = file + r'\An_Report1\summary.html'
+        content_html_path = file + r'\An_Report1\contents.html'
+
+        with open(summary_html_path, "r") as summary_html_file:
+            summary_str = summary_html_file.read()
+            transaction_name_list = re.findall(r'headers="LraTransaction Name".*?8">(.*?)</td>', summary_str)
+            logger.debug("trasaction_name_list is None: %s" % str(False if(transaction_name_list is not None) else True))
+            pass_list = re.findall(r'headers="LraPass".*?8">(.*?)</td>', summary_str)
+            logger.debug("pass_list is None: %s" % str(False if (pass_list is not None) else True))
+            fail_list = re.findall(r'headers="LraFail".*?8">(.*?)</td>', summary_str)
+            logger.debug("fail_list is None: %s" % str(False if (fail_list is not None) else True))
+
+        if not pass_list or not fail_list or not transaction_name_list:
+                raise CustomError("%s 有未匹配到的数据" % self.name)
+
+        # TPS 从 TPS html 页面中获取, 先从 contents.html 获取到 TPS html 名称
+        # Respnse Time 从 Response Time html 页面中获取,先从 contents.html 获取到 Response Time html 名称
+        with open(content_html_path, "r") as content_html_file:
+            content_str = content_html_file.read()
+            tps_html_name_match = re.match(r'[\s\S]*href="(.*?)" Target.*?>Transactions per Second', content_str)
+            response_time_html_name_match = re.match(r'[\s\S]*href="(.*?)" Target.*?>Average Transaction Response Time'
+                                                     , content_str)
+
+            if tps_html_name_match is None:
+                raise CustomError("%s 未找到 tps html 报告" % self.name)
+            elif response_time_html_name_match is None:
+                raise CustomError("%s 未找到 Respnse Time html 报告" % self.name)
+
+            tps_html_name = tps_html_name_match.group(1)
+            logger.debug("%s tps html name %s " % (os.path.basename(file), tps_html_name))
+            tps_html_path = file + r'\An_Report1' + os.path.sep + tps_html_name
+            logger.debug("%s tps html path %s " % (os.path.basename(file), tps_html_path))
+            response_time_html_name = response_time_html_name_match.group(1)
+            logger.debug("%s response time html name %s" % (os.path.basename(file), response_time_html_name))
+            response_time_html_path = file + r'\An_Report1' + os.path.sep + response_time_html_name
+            logger.debug("%s response time html path %s" % (os.path.basename(file), response_time_html_path))
+
+        self.fetch_tps(tps_html_path, tps_list)
+        self.fetch_resp_time(response_time_html_path, resp_avg_list, resp_min_list, resp_max_list)
+
+        # 长整数取到的数字带有逗号,例如1024是1,024,在取数字时,先将逗号去掉
+        for index in range(0, len(transaction_name_list)):
+            transaction_name = transaction_name_list[index]
+            logger.debug("transaction name %s" % transaction_name)
+            tps = tps_list[index]
+            logger.debug("tps %s" % tps)
+            pass_tsc = pass_list[index].replace(",", "")
             logger.debug("pass transaction: %s" % pass_tsc)
-            fail_tsc = fail_match.group(1).replace(",", "")
+            fail_tsc = fail_list[index].replace(",", "")
             logger.debug("fail transaction: %s" % fail_tsc)
             # 时间转化成 ms 单位
-            resp_avg = float(resp_avg_match.group(1).replace(",", "")) * 1000
+            resp_avg = resp_avg_list[index]
             logger.debug("resp average time : %sms" % resp_avg)
-            resp_max = float(resp_max_match.group(1).replace(",", "")) * 1000
+            resp_max = resp_max_list[index]
             logger.debug("resp max time: %sms" % resp_max)
-            resp_min = float(resp_min_match.group(1).replace("", "")) * 1000
+            resp_min = resp_min_list[index]
             logger.debug("resp min time: %sms" % resp_min)
 
             all_tsc = str(int(fail_tsc) + int(pass_tsc))
             error = round(int(fail_tsc)/int(all_tsc), 2)
             # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
             data_list = [all_tsc, tps, error, resp_avg, resp_min, resp_max]
-            self.result_dict[os.path.basename(file)] = data_list
-            logger.info("loadrunner 报告解析结束")
+            # dict:{transaction name:list}
+            self.result_dict[transaction_name] = data_list
+
+        logger.info("loadrunner 报告解析结束")
+
+    def fetch_tps(self, file_path, tps_list):
+        """
+        提取 tps html 中 tps 的值
+        :param file_path: tps html 绝对路径
+        :param tps_list: 保存 tps 值的 list
+        """
+        logger.debug("%s 开始提取 tps 数据" % self.name)
+        with open(file_path, "r") as tps_html_file:
+            tps_str = tps_html_file.read()
+            tps_table_list = re.findall(r'<tr class="legendRow">([\s\S]*?)</tr>', tps_str)
+
+            if not tps_table_list:
+                raise CustomError("%s 未匹配到 tps 数据" % self.name)
+
+            logger.debug("%s 共匹配到 %d 条tps记录" % (self.name, len(tps_table_list)))
+            for index in range(0, len(tps_table_list)):
+                tps_table_str = tps_table_list[index].replace("\n", "")
+                tps_data_list = tps_table_str.split("<td>", 5)
+
+                # 判断是否为成功记录,成功记录提取数据, 失败记录跳过
+                if tps_data_list[2][:-5].split(":")[1] != "Pass":
+                    continue
+
+                logger.debug("%s 交易 transaction %s tps %s" % (
+                    self.name, tps_data_list[2][:-5].split(":")[0], tps_data_list[4][:-5]))
+
+                tps_list.append(tps_data_list[4][:-5])
+
+    def fetch_resp_time(self, file_path, resp_avg_list, resp_min_list, resp_max_list):
+        """
+        提取 response time html 中 各 response time 的值
+        :param file_path: response time html 绝对路径
+        :param resp_avg_list: 保存 response time average 值
+        :param resp_min_list: 保存 response time min 值
+        :param resp_max_list: 保存 response time max 值
+        """
+        logger.debug("%s 开始提取 response time 数据" % self.name)
+        with open(file_path, "r") as response_time_html_file:
+            response_time_str = response_time_html_file.read()
+            response_time_table_list = re.findall(r'<tr class="legendRow">([\s\S]*?)</tr>', response_time_str)
+
+            if not response_time_table_list:
+                raise CustomError("%s 未匹配到 response time 数据" % self.name)
+
+            logger.debug("%s 共匹配到 %d 条 response time 记录" % (self.name, len(response_time_table_list)))
+            for index in range(0, len(response_time_table_list)):
+                response_time_table_str = response_time_table_list[index].replace("\n", "")
+                response_time_data_list = response_time_table_str.split("<td>", 6)
+
+                trasaction_name = response_time_data_list[2][:-5]
+                # 单位转化为 ms
+                response_time_average = round(float(response_time_data_list[4][:-5]) * 1000, 2)
+                logger.debug("%s 交易 transcation %s response time average: %.2fms" % (
+                    self.name, trasaction_name, response_time_average))
+                resp_avg_list.append(response_time_average)
+
+                response_time_min = round(float(response_time_data_list[3][:-5]) * 1000, 2)
+                logger.debug("%s 交易 transcation %s response time min: %.2fms" % (
+                    self.name, trasaction_name, response_time_min))
+                resp_min_list.append(response_time_min)
+
+                response_time_max = round(float(response_time_data_list[5][:-5]) * 1000, 2)
+                logger.debug("%s 交易 transcation %s response time max: %.2fms" % (
+                    self.name, trasaction_name, response_time_max))
+                resp_max_list.append(response_time_max)
+
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
@@ -365,6 +465,7 @@ if __name__ == "__main__":
     # jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
     # jmeter = JmeterAnalyse()
     # jmeter.file_analyse(jmetrfile)
-    loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res-5'
+    loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res'
     loadrunner = LoadRunnerAnalyse()
     loadrunner.file_analyse(loadrunner_file)
+    print(loadrunner.result_dict)
