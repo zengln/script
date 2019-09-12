@@ -32,6 +32,9 @@ class NmonAnalyse(FileAnalyse):
         self.disk = float(0)
         self.net = float(0)
 
+    def set_ip(self, ip):
+        self.ip = ip
+
     def file_analyse(self, file):
         """
         Nmon 文件解析入口
@@ -287,7 +290,8 @@ class JmeterAnalyse(FileAnalyse):
                 for static_item_data in static_items_data:
                     tmp_data = static_item_data['data']
                     # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
-                    tmp_list = [tmp_data[1], tmp_data[10], tmp_data[3], tmp_data[4], tmp_data[5], tmp_data[6]]
+                    tmp_list = [tmp_data[1], round(float(tmp_data[10]), 2), tmp_data[3], round(float(tmp_data[4]), 2),
+                                round(float(tmp_data[5]), 2), round(float(tmp_data[6]), 2)]
                     # dict: {name:list}
                     self.result_dict[tmp_data[0]] = tmp_list
 
