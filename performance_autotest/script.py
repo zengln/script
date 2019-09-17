@@ -44,8 +44,8 @@ def jmeter_cmd(script_file, path):
     cmd_list = []
     result_file_list = []
     # TODO cmd 参数化
-    cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
-    # cmd = r"jmeter -n -t "
+    # cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
+    cmd = r"jmeter -n -t "
     for file in script_file:
         command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl -e -o " \
                   + path + os.path.sep + file
@@ -67,8 +67,10 @@ def lr_cmd(script_file, path):
     cmd_anaylise_list = []
     result_file_list = []
     # TODO cmd 参数化
-    cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
-    cmd_analyse = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\AnalysisUI -RESULTPATH '
+    # cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
+    cmd = r'wlrun -TestPath '
+    # cmd_analyse = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\AnalysisUI -RESULTPATH '
+    cmd_analyse = r'AnalysisUI -RESULTPATH '
     for file in script_file:
         command = cmd + path + os.path.sep + file + ".lrs" + " -Run -ResultName " + path + os.path.sep + file
         command_analyse = cmd_analyse + path + os.path.sep + file + os.path.sep + file + ".lrr -TEMPLATENAME html"
