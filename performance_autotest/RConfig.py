@@ -21,8 +21,8 @@ class Config(object):
 
     def __init__(self):
         self.conf = configparser.ConfigParser()
-        if os.path.exists(".\\conf\\config_test.ini"):
-            self.conf.read(".\\conf\\config_test.ini", encoding="GBK")
+        if os.path.exists(".\\conf\\config.ini"):
+            self.conf.read(".\\conf\\config.ini", encoding="GBK")
         else:
             raise CustomError("配置文件不存在")
 
