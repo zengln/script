@@ -382,7 +382,7 @@ class LoadRunnerAnalyse(FileAnalyse):
             logger.debug("resp min time: %sms" % resp_min)
 
             all_tsc = str(int(fail_tsc) + int(pass_tsc))
-            error = round(int(fail_tsc)/int(all_tsc), 2)
+            error = round(int(fail_tsc)/int(all_tsc) * 100, 2)
             # list: [Transaction, TPS, Error%, Response Time(average), Response Time(min), Response Time(max)]
             data_list = [all_tsc, tps, error, resp_avg, resp_min, resp_max]
             # dict:{transaction name:list}
