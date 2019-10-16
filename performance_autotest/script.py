@@ -43,7 +43,6 @@ def jmeter_cmd(script_file, path):
     """
     cmd_list = []
     result_file_list = []
-    # TODO cmd 参数化
     # cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
     cmd = r"jmeter -n -t "
     for file in script_file:
@@ -66,7 +65,6 @@ def lr_cmd(script_file, path):
     cmd_list = []
     cmd_anaylise_list = []
     result_file_list = []
-    # TODO cmd 参数化
     # cmd = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\wlrun -TestPath  '
     cmd = r'wlrun -TestPath '
     # cmd_analyse = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\AnalysisUI -RESULTPATH '
