@@ -326,7 +326,7 @@ class LoadRunnerAnalyse(FileAnalyse):
         summary_html_path = file + r'\An_Report1\summary.html'
         content_html_path = file + r'\An_Report1\contents.html'
 
-        with open(summary_html_path, "r") as summary_html_file:
+        with open(summary_html_path, "r", encoding='utf8') as summary_html_file:
             summary_str = summary_html_file.read()
             transaction_name_list = re.findall(r'headers="LraTransaction Name".*?8">(.*?)</td>', summary_str)
             logger.debug("trasaction_name_list is None: %s" % str(False if(transaction_name_list is not None) else True))
@@ -340,7 +340,7 @@ class LoadRunnerAnalyse(FileAnalyse):
 
         # TPS 从 TPS html 页面中获取, 先从 contents.html 获取到 TPS html 名称
         # Respnse Time 从 Response Time html 页面中获取,先从 contents.html 获取到 Response Time html 名称
-        with open(content_html_path, "r") as content_html_file:
+        with open(content_html_path, "r", encoding='utf8') as content_html_file:
             content_str = content_html_file.read()
             tps_html_name_match = re.match(r'[\s\S]*href="(.*?)" Target.*?>Transactions per Second', content_str)
             response_time_html_name_match = re.match(r'[\s\S]*href="(.*?)" Target.*?>Average Transaction Response Time'
@@ -397,7 +397,7 @@ class LoadRunnerAnalyse(FileAnalyse):
         :param tps_list: 保存 tps 值的 list
         """
         logger.debug("%s 开始提取 tps 数据" % self.name)
-        with open(file_path, "r") as tps_html_file:
+        with open(file_path, "r", encoding='utf8') as tps_html_file:
             tps_str = tps_html_file.read()
             tps_table_list = re.findall(r'<tr class="legendRow">([\s\S]*?)</tr>', tps_str)
 
@@ -427,7 +427,7 @@ class LoadRunnerAnalyse(FileAnalyse):
         :param resp_max_list: 保存 response time max 值
         """
         logger.debug("%s 开始提取 response time 数据" % self.name)
-        with open(file_path, "r") as response_time_html_file:
+        with open(file_path, "r", encoding='utf8') as response_time_html_file:
             response_time_str = response_time_html_file.read()
             response_time_table_list = re.findall(r'<tr class="legendRow">([\s\S]*?)</tr>', response_time_str)
 
