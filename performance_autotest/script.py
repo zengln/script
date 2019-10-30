@@ -6,7 +6,7 @@ from performance_autotest.customexception import CustomError
 from performance_autotest.log import logger
 
 
-__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command"]
+__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command", "get_all_script_path"]
 
 
 def get_all_script(script_path, file_extension):
@@ -35,6 +35,42 @@ def get_all_script(script_path, file_extension):
     logger.debug("所有脚本文件")
     logger.debug(script_files)
     return script_files
+
+
+def get_all_script_path(file_path, file_extension):
+    """
+    获取当前文件夹下所有制定后缀文件
+    :param file_path:       文件夹路径
+    :param file_extension:  文件类型
+    :return:返回脚本文件全路径列表
+    """
+    files_path = []
+    for root, dirs, files in os.walk(file_path):
+        for file in files:
+            logger.debug("文件名："+file)
+            if os.path.splitext(file)[1] == file_extension:
+                file_path = os.path.join(root, file)
+                logger.info("含有"+file_extension+"后缀的文件:"+file+",全路径为:"+file_path)
+                files_path.append(os.path.splitext(file_path)[0])
+
+    return files_path
+
+
+def analyse_lr_cmd(files_path):
+    """
+    生成lr解析命令
+    """
+    cmd_anaylise_list = []
+    cmd = r'wlrun -TestPath '
+    # cmd_analyse = r'C:\"Program Files (x86)"\HP\LoadRunner\bin\AnalysisUI -RESULTPATH '
+    cmd_analyse = r'AnalysisUI -RESULTPATH '
+    for file_path in files_path:
+        command_analyse = cmd_analyse + file_path + ".lrr -TEMPLATENAME html"
+        cmd_anaylise_list.append(command_analyse)
+
+    logger.debug("生成的 lr 解析命令")
+    logger.debug(cmd_anaylise_list)
+    return cmd_anaylise_list
 
 
 def jmeter_cmd(script_file, path):
