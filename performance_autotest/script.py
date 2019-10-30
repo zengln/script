@@ -6,7 +6,7 @@ from performance_autotest.customexception import CustomError
 from performance_autotest.log import logger
 
 
-__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command", "get_all_script_path"]
+__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command", "get_all_script_path","analyse_lr_cmd"]
 
 
 def get_all_script(script_path, file_extension):
