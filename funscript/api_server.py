@@ -15,7 +15,7 @@ user_dict = {}
 @app.route('/api/users/<int:uid>', methods=['POST'])
 def create_user(uid):
     user = request.get_json()
-    if user not in user_dict :
+    if uid not in user_dict:
         result = {
             'success': True,
             'msg': 'create user success'
@@ -55,5 +55,36 @@ def update_user(uid):
     return response
 
 
-if __name__ == '__main__':
-    app.run()
+@app.route('/api/users')
+def get_users():
+    user_list = [user for uid, user in user_dict.items()]
+    if user_dict:
+
+        result = {
+            'success': True,
+            'count': len(user_dict),
+            'items': user_list
+        }
+        status_code = 201
+    else:
+        result = {
+
+            'success': False,
+            'count': 0
+        }
+        status_code = 500
+    response = make_response(json.dumps(result), status_code)
+    response.headers['Content-type'] = 'application/json'
+    return response
+
+
+@app.route('/api/reset-all')
+def clear_users():
+    user_dict.clear()
+    result = {
+        'success': True,
+    }
+
+    response = make_response(json.dumps(result))
+    response.headers['Content-type'] = 'application/json'
+    return response
