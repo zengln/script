@@ -49,7 +49,6 @@ class NmonAnalyse(FileAnalyse):
         # 打开文件, 提取存有关键数据的行
         with open(file, "r", encoding='utf8') as nmonfile:
             text = nmonfile.readlines()
-            print(text)
             for line in text:
                 # cpu
                 if "CPU_ALL,T" in line:
