@@ -47,8 +47,9 @@ class NmonAnalyse(FileAnalyse):
         disk_line = []
         net_line = []
         # 打开文件, 提取存有关键数据的行
-        with open(file, "r") as nmonfile:
+        with open(file, "r", encoding='utf8') as nmonfile:
             text = nmonfile.readlines()
+            print(text)
             for line in text:
                 # cpu
                 if "CPU_ALL,T" in line:
@@ -459,17 +460,17 @@ class LoadRunnerAnalyse(FileAnalyse):
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
-    # nmonfile = r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon'
-    # nmon = NmonAnalyse()
-    # nmon.file_analyse(nmonfile)
-    # print(nmon.cpu)
-    # print(nmon.mem)
-    # print(nmon.disk)
-    # print(nmon.net)
+    nmonfile = r'C:\Users\zengjn22046\Desktop\大额贷记往账1Vuser.nmon'
+    nmon = NmonAnalyse()
+    nmon.file_analyse(nmonfile)
+    print(nmon.cpu)
+    print(nmon.mem)
+    print(nmon.disk)
+    print(nmon.net)
     # jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
     # jmeter = JmeterAnalyse()
     # jmeter.file_analyse(jmetrfile)
-    loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res'
-    loadrunner = LoadRunnerAnalyse()
-    loadrunner.file_analyse(loadrunner_file)
-    print(loadrunner.result_dict)
+    # loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res'
+    # loadrunner = LoadRunnerAnalyse()
+    # loadrunner.file_analyse(loadrunner_file)
+    # print(loadrunner.result_dict)
