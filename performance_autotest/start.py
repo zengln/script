@@ -6,6 +6,7 @@
 import os
 import traceback
 import time
+import sys
 
 from performance_autotest.customexception import CustomError
 from performance_autotest.script import *
@@ -175,3 +176,4 @@ except Exception:
     logger.error(error_msg)
     time.sleep(1)
     input("按任意键退出")
+    sys.exit()
