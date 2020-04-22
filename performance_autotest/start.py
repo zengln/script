@@ -19,6 +19,22 @@ from performance_autotest.report import Report
     入口脚本
 """
 
+def check_exe():
+    '''
+    检查jmeter是否在运行, 正在运行则退出
+    :return:
+    '''
+    pslist = os.popen("tasklist | findstr java.exe").read().split('\n')
+    logger.debug(pslist)
+    for ps in pslist:
+        if ps != '':
+            pid = ps.split()[1]
+            cmd = ("jstack %s | findstr jmeter" % pid)
+            logger.debug(cmd)
+            result = os.popen(cmd).read()
+            if len(result) != 0:
+                raise CustomError("Jmeter 程序正在运行, 请关闭 Jmeter, 再执行脚本")
+
 
 def check_dir(path):
     logger.debug("检查下载路径是否存在")
@@ -98,6 +114,8 @@ def analyse_loadrunner(loadrunner_file_list, loadrunner_result_list):
     logger.info("解析loadrunner文件结束")
 
 try:
+    check_exe()
+
     # 保存结果文件路径
     result_jmeter_file_list = []
     result_loadrunner_file_list = []
