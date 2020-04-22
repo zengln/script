@@ -2,6 +2,9 @@
 
 import configparser
 import os
+import traceback
+import time
+import sys
 
 from performance_autotest.customexception import CustomError
 
@@ -21,8 +24,8 @@ class Config(object):
 
     def __init__(self):
         self.conf = configparser.ConfigParser()
-        if os.path.exists(".\\conf\\config.ini"):
-            self.conf.read(".\\conf\\config.ini", encoding="GBK")
+        if os.path.exists(".\\conf\\config_test.ini"):
+            self.conf.read(".\\conf\\config_test.ini", encoding="GBK")
         else:
             raise CustomError("配置文件不存在")
 
@@ -55,6 +58,12 @@ class Config(object):
 
         return True
 
-
-config = Config()
-config.reload_all_value()
+try:
+    config = Config()
+    config.reload_all_value()
+except:
+    error_msg = traceback.format_exc()
+    print(error_msg)
+    time.sleep(1)
+    input("按任意键退出")
+    sys.exit()
