@@ -13,3 +13,9 @@ class Node(models.Model):
     node_value = models.CharField(max_length=2000, null=True)
     # 交易码
     trans_code = models.CharField(max_length=200)
+    # 用例编号
+    case_id = models.CharField(max_length=3)
+
+    class Meta:
+        db_table = 'Node'
+        indexes = [models.Index(fields=('trans_code', 'case_id')), ]
