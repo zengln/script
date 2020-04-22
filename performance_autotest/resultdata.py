@@ -272,7 +272,7 @@ class JmeterAnalyse(FileAnalyse):
         super().file_analyse(file)
         file_all_path = file + r"\content\js\dashboard.js"
 
-        with open(file_all_path, "r") as jmeterfile:
+        with open(file_all_path, "r", encoding="utf8") as jmeterfile:
             text = jmeterfile.read()
             static_data_match_result = re.match(r'[\s\S]*statisticsTable"\),(.*?), function', text)
 
@@ -459,16 +459,16 @@ class LoadRunnerAnalyse(FileAnalyse):
 
 if __name__ == "__main__":
     # nmonfile = r'D:\work\工具\nmon\71Vusr.nmon'
-    nmonfile = r'C:\Users\zengjn22046\Desktop\大额贷记往账1Vuser.nmon'
-    nmon = NmonAnalyse()
-    nmon.file_analyse(nmonfile)
-    print(nmon.cpu)
-    print(nmon.mem)
-    print(nmon.disk)
-    print(nmon.net)
-    # jmetrfile = r"C:\Users\zengjn\Desktop\jemter\get"
-    # jmeter = JmeterAnalyse()
-    # jmeter.file_analyse(jmetrfile)
+    # nmonfile = r'C:\Users\zengjn22046\Desktop\大额贷记往账1Vuser.nmon'
+    # nmon = NmonAnalyse()
+    # nmon.file_analyse(nmonfile)
+    # print(nmon.cpu)
+    # print(nmon.mem)
+    # print(nmon.disk)
+    # print(nmon.net)
+    jmetrfile = r"C:\Users\zengjn22046\Desktop\yecxwz50"
+    jmeter = JmeterAnalyse()
+    jmeter.file_analyse(jmetrfile)
     # loadrunner_file = r'C:\Users\zengjn\Desktop\Get\scenario\res'
     # loadrunner = LoadRunnerAnalyse()
     # loadrunner.file_analyse(loadrunner_file)
