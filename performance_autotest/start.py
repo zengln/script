@@ -7,6 +7,7 @@ import os
 import traceback
 import time
 import sys
+import subprocess
 
 from performance_autotest.customexception import CustomError
 from performance_autotest.script import *
@@ -25,16 +26,31 @@ def check_exe():
     检查jmeter是否在运行, 正在运行则退出
     :return:
     '''
-    pslist = os.popen("tasklist | findstr java.exe").read().split('\n')
-    logger.debug(pslist)
-    for ps in pslist:
-        if ps != '':
-            pid = ps.split()[1]
-            cmd = ("jstack %s | findstr jmeter" % pid)
-            logger.debug(cmd)
-            result = os.popen(cmd).read()
-            if len(result) != 0:
-                raise CustomError("Jmeter 程序正在运行, 请关闭 Jmeter, 再执行脚本")
+
+    command = "tasklist | findstr java.exe"
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode == 1:
+        if result.stderr:
+            raise CustomError(result.stderr.decode('gbk'))
+    elif result.returncode == 0:
+        command_result_str = result.stdout.decode('gbk')
+        logger.debug("命令 %s 执行结果 %a" % (command, command_result_str))
+        command_result_list = command_result_str.split(os.linesep)
+        logger.debug(command_result_list)
+        for command_result in command_result_list:
+            if command_result != '':
+                pid = command_result.split()[1]
+                find_jemeter = "jstack %s" % pid
+                result_jm = subprocess.run(find_jemeter, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                if result_jm.returncode == 0:
+                    if "jmeter" in result_jm.stdout.decode('gbk'):
+                        raise CustomError("jmeter 程序正在运行, 请关闭 jmeter 再开启脚本")
+                    else:
+                        logger.debug("jmeter不在运行运行")
+                else:
+                    if result_jm.stderr:
+                        raise CustomError(result_jm.stderr.decode('gbk'))
 
 
 def check_dir(path):
