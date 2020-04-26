@@ -18,4 +18,4 @@ class Node(models.Model):
 
     class Meta:
         db_table = 'Node'
-        indexes = [models.Index(fields=('trans_code', 'case_id')), ]
+        constraints = [models.UniqueConstraint(fields=['trans_code', 'case_id'], name='unique_trans_case')]
