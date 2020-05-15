@@ -95,7 +95,8 @@ class Server(object):
             sftp.get("./"+self.server_name+"/" + file.filename, download_local_path + "\\" + file.filename)
             self.file_list.append(download_local_path + "\\" + file.filename)
         trans.close()
-
+        '--add 20200515 报告显示顺序存在乱序的情况, 在保存完所有的文件路径后, 进行排序'
+        self.file_list.sort()
         logger.info("%s 监控文件下载完成, 文件保存在 %s" % (self.server_name, download_local_path))
 
 
