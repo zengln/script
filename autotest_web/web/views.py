@@ -2,9 +2,9 @@ from django.shortcuts import render
 
 import os, sys, django
 
-print(sys.path)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'autotest_web.settings')
-django.setup()
+# print(sys.path)
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'autotest_web.settings')
+# django.setup()
 
 
 from web.models import Node
@@ -58,6 +58,14 @@ def print_all():
         print(node.product_node)
         print(node.real_node)
         print(node.node_value)
+
+
+def test(request, year):
+    return render(request, 'new.html')
+
+
+def index(request):
+    return render(request, 'test.html')
 
 
 if __name__ == "__main__":
