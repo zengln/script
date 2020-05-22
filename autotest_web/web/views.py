@@ -1,12 +1,4 @@
 from django.shortcuts import render
-
-import os, sys, django
-
-# print(sys.path)
-# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'autotest_web.settings')
-# django.setup()
-
-
 from web.models import Node
 
 # Create your views here.
@@ -60,15 +52,5 @@ def print_all():
         print(node.node_value)
 
 
-def test(request, year):
-    return render(request, 'new.html')
-
-
 def index(request):
-    return render(request, 'test.html')
-
-
-if __name__ == "__main__":
-    test = {"product_node":"/hupp/test", "real_node":"/real/test", "case_id":"02", "trans_code":"961001", "node_value":"测试"}
-    insert(test)
-    print_all()
+    return render(request, "web/index.html")

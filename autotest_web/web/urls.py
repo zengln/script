@@ -8,5 +8,4 @@ from web import views
 
 urlpatterns = [
     path('', views.index),
-    re_path(r'new/([0-9]{4})/$', views.test, name='jump-new'),
 ]
