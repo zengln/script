@@ -53,4 +53,5 @@ def print_all():
 
 
 def index(request):
-    return render(request, "web/index.html")
+    nodes = Node.objects.all()
+    return render(request, "web/index.html", {"nodes": nodes})

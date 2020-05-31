@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
     <h1>Index Html</h1>
+    {% for node in nodes %}
+    <ul>{{ node.id }}
+        <li>{{ node.product_node }}</li>
+        <li>{{ node.real_node }}</li>
+        <li>{{ node.node_value }}</li>
+    </ul>
+
+    {% endfor %}
+
+    <script src="{% static "bootstrap/js/jquery.min.js" %}"></script>
+    <script src="{% static "bootstrap/js/bootstrap.min.js" %}"></script>
 </body>
 </html>
