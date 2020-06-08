@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from web.models import Node
+from django.db.models import Count
 
 # Create your views here.
 
@@ -53,5 +54,5 @@ def print_all():
 
 
 def index(request):
-    nodes = Node.objects.all()
+    nodes = Node.objects.values('trans_code').annotate(counts=Count('trans_code'))
     return render(request, "web/index.html", {"nodes": nodes})
