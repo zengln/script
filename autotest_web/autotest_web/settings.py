@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'web',
+    'transcode',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

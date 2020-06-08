@@ -4,7 +4,7 @@
 # @File    : urls.py
 
 from django.urls import path, re_path
-from web import views
+from transcode import views
 
 urlpatterns = [
     path('', views.index),
