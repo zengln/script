@@ -1,10 +1,8 @@
 from django.shortcuts import render
 from transcode.models import Node
-from django.db.models import Count
 
 # Create your views here.
 
-nodes = Node.objects.values('trans_code').annotate(counts=Count('trans_code'))
 
 def insert(kwargs):
     product_node_value = kwargs["product_node"]
@@ -55,8 +53,8 @@ def print_all():
 
 
 def index(request):
-    return render(request, "transcode/index.html", {"nodes": nodes})
+    return render(request, "transcode/index.html")
 
 
 def trans_code(request, transcode):
-    return render(request, "transcode/node_set.html", {"transcode": transcode, "nodes": nodes})
+    return render(request, "transcode/node_set.html", {"transcode": transcode})
