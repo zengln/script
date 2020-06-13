@@ -1,27 +1,24 @@
 {% extends "transcode\index.html" %}
 {% block content %}
 <p>{{ transcode }}node_set</p>
-<select class="combobox">
-  <option></option>
-  <option value="PA">Pennsylvania</option>
-  <option value="CT">Connecticut</option>
-  <option value="NY">New York</option>
-  <option value="MD">Maryland</option>
-  <option value="VA">Virginia</option>
-</select>
+<form role="form">
+    <div class="form-group">
+        <select class="form-control" id="case-num">
+            <option>踢足球</option>
+            <option>游泳</option>
+            <option>慢跑</option>
+            <option>跳舞</option>
+        </select>
+    </div>
+</form>
+<script>
+  $(function(){
+    $("#case-num").change(function(){
+      alert($("#case-num").find("option:selected").text());
 
+    })
+  })
 
-<script type="text/javascript">
-  $(document).ready(function(){
-    $('.combobox').combobox({
-        onSelect:function(){
-            alter('选定项时触发');
-        },
-
-        onUnselect:function(){
-            alter('选定后触发！');
-        },
-    });
-  });
 </script>
+
 {% endblock %}
