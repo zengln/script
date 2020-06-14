@@ -57,4 +57,9 @@ def index(request):
 
 
 def trans_code(request, transcode):
-    return render(request, "transcode/node_set.html", {"transcode": transcode})
+    nodes = Node.objects.filter(trans_code=transcode)
+    return render(request, "transcode/trans_code.html", {"trans_nodes": nodes, "transcode": transcode})
+
+
+def node_set(request, transcode):
+    return render(request, "transcode/node_set.html")
