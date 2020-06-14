@@ -4,20 +4,51 @@
 <form role="form">
     <div class="form-group">
         <select class="form-control" id="case-num">
-            <option>踢足球</option>
-            <option>游泳</option>
-            <option>慢跑</option>
-            <option>跳舞</option>
+            <option></option>
+            {% for node in trans_nodes %}
+            <option> {{ node.case_id }}</option>
+            {% endfor %}
         </select>
     </div>
 </form>
+<table class="table" id="node-set-table">
+    <caption>{{ transcode }}</caption>
+    <thead>
+    <tr>
+        <th>测试用例编号</th>
+        <th>产品节点</th>
+        <th>现场节点</th>
+        <th>节点值</th>
+    </tr>
+    </thead>
+    {% for node in trans_nodes %}
+    <tbody>
+    <tr>
+        <th>{{ node.case_id }}</th>
+        <th>{{ node.product_node}}</th>
+        <th>{{ node.real_node }}</th>
+        <th>{{ node.node_value }}</th>
+    </tr>
+    </tbody>
+    {% endfor %}
+</table>
 <script>
   $(function(){
+  <!--默认隐藏table-->
+    $("#node-set-table").hide();
+
     $("#case-num").change(function(){
-      alert($("#case-num").find("option:selected").text());
+      var value = $("#case-num").find("option:selected").text();
+      if (value == "") {
+        $("#node-set-table").hide();
+      }else {
+        $("#node-set-table").show();
+      }
 
     })
   })
+
+
 
 </script>
 
