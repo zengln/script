@@ -8,5 +8,6 @@ from transcode import views
 
 urlpatterns = [
     path('', views.index),
-    path('<int:transcode>/', views.trans_code, name='node_set'),
+    path('<int:transcode>/', views.trans_code, name='trans_code'),
+    path('<int:transcode>/node_set', views.node_set, name="node_set"),
 ]

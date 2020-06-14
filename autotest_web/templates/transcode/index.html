@@ -49,7 +49,7 @@
             </ul>
             <ul class="nav nav-sidebar">
                 {% for node in nodes %}
-                <li><a href="{% url 'node_set' node.trans_code  %}"> {{ node.trans_code }} </a></li>
+                <li><a href="{% url 'trans_code' node.trans_code  %}"> {{ node.trans_code }} </a></li>
                 {% endfor %}
             </ul>
         </div>
