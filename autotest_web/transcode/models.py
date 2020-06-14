@@ -1,10 +1,10 @@
 from django.db import models
 
+
 # Create your models here.
 
 
 class Node(models.Model):
-
     # 产品节点
     product_node = models.CharField(max_length=200, null=True)
     # 现场节点
@@ -18,4 +18,8 @@ class Node(models.Model):
 
     class Meta:
         db_table = 'Node'
-        constraints = [models.UniqueConstraint(fields=['trans_code', 'case_id'], name='unique_trans_case')]
+        '''
+        暂不使用索引 -add 20200614
+        constraints = [
+            models.UniqueConstraint(fields=['trans_code', 'case_id', 'product_node'], name='unique_trans_case')]
+        '''
