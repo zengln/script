@@ -1,0 +1,28 @@
+{% extends "transcode\index.html" %}
+{% block content %}
+<p>{{ transcode }}node_set</p>
+<form role="form">
+    <div class="form-group">
+        <select class="form-control" id="case-num">
+            <option></option>
+            {% for node in trans_nodes %}
+            <option> {{ node.case_id }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+{% block node-set %}
+{% endblock node-set %}
+<script>
+  $(function(){
+    $("#case-num").change(function(){
+      var value = $("#case-num").find("option:selected").text();
+      window.location.href = 'http://127.0.0.1:8000/transcode/961001/node_set';
+    })
+  })
+
+
+
+</script>
+
+{% endblock %}
