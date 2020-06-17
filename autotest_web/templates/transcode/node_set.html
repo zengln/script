@@ -1,4 +1,27 @@
 {% extends "transcode\trans_code.html" %}
 {% block node-set %}
 <p>node_set 页面</p>
+<div class="container">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>测试用例编号</th>
+            <th>产品节点</th>
+            <th>现场节点</th>
+            <th>节点值</th>
+        </tr>
+        </thead>
+        {% for node in trans_code_value_nodes %}
+        <tbody>
+        <tr>
+            <td>{{ node.case_id }}</td>
+            <td>{{ node.product_node }}</td>
+            <td>{{ node.real_node }}</td>
+            <td>{{ node.node_value }}</td>
+        </tr>
+        </tbody>
+        {% endfor %}
+    </table>
+</div>
+
 {% endblock %}
