@@ -17,7 +17,7 @@
   $(function(){
     $("#case-num").change(function(){
       var value = $("#case-num").find("option:selected").text();
-      window.location.href = 'http://127.0.0.1:8000/transcode/961001/node_set';
+      window.location.href = 'http://127.0.0.1:8000/transcode/{{ transcode }}/node_set?case_id='+value;
     })
   })
 
