@@ -62,4 +62,9 @@ def trans_code(request, transcode):
 
 
 def node_set(request, transcode):
-    return render(request, "transcode/node_set.html")
+    if request.method == 'GET':
+        case_id = int(request.GET.get("case_id"))
+    nodes = Node.objects.filter(trans_code=transcode).filter(case_id=case_id)
+
+    print(nodes)
+    return render(request, "transcode/node_set.html", {"trans_code_value_nodes": nodes})
