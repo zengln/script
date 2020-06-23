@@ -114,7 +114,11 @@ def analyse_jmeter(jmeter_file_list, jmeter_result_list):
 
     for jmeter_file in jmeter_file_list:
         jmeter = JmeterAnalyse()
-        jmeter.file_analyse(jmeter_file)
+        try:
+            jmeter.file_analyse(jmeter_file)
+        except Exception as e:
+            logger.error(e)
+            continue
         jmeter_result_list.append(jmeter)
 
     logger.info("解析jmeter文件结束")
@@ -125,7 +129,11 @@ def analyse_loadrunner(loadrunner_file_list, loadrunner_result_list):
 
     for loadrunner_file in loadrunner_file_list:
         loadrunner = LoadRunnerAnalyse()
-        loadrunner.file_analyse(loadrunner_file)
+        try:
+            loadrunner.file_analyse(loadrunner_file)
+        except Exception as e:
+            logger.error(e)
+            continue
         loadrunner_result_list.append(loadrunner)
 
     logger.info("解析loadrunner文件结束")
