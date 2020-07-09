@@ -15,11 +15,14 @@ def get_all_script(script_path, file_extension):
     :param script_path:    文件夹路径
     :param file_extension: 文件类型
     :return:返回脚本文件列表
+    :return 脚本路径
     """
     # 如果是一个文件,判断后缀是否合法后,返回
     if os.path.isfile(script_path):
-        if os.path.splitext(script_path)[1] == file_extension:
-            return [os.path.split(script_path)[1]]
+        file_and_path = os.path.split(script_path)
+        file = file_and_path[1]
+        if os.path.splitext(file)[1] == file_extension:
+            return [os.path.splitext(file)[0]], file_and_path[0]
         else:
             raise CustomError("检查到文件后缀与脚本类型不符, 预期脚本类型为: %s" % file_extension)
 
@@ -41,7 +44,7 @@ def get_all_script(script_path, file_extension):
 
     logger.debug("所有脚本文件")
     logger.debug(script_files)
-    return script_files
+    return script_files, script_path
 
 
 def get_all_script_path(file_path, file_extension):
@@ -155,5 +158,6 @@ def exe_command(command):
 
 
 if __name__ == '__main__':
-    print(get_all_script(r"D:\CDRDT_20_12.lrs", ".lrs"))
+    print(get_all_script(r"D:\work\HUPP\1.5.0\压测\场景\CDRDT_20_12.lrs", ".lrs"))
+    print(get_all_script(r"D:\work\HUPP\1.5.0\压测\场景", ".lrs"))
 
