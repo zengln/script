@@ -139,8 +139,6 @@ def analyse_loadrunner(loadrunner_file_list, loadrunner_result_list):
     logger.info("解析loadrunner文件结束")
 
 try:
-    check_exe()
-
     # 保存结果文件路径
     result_jmeter_file_list = []
     result_loadrunner_file_list = []
@@ -153,6 +151,8 @@ try:
 
     # 生成脚本运行命令
     if not config.jmeter_script_dir == "":
+        # jmeter 生成脚本命令前, 检查 jmeter 程序是否存在
+        check_exe()
         script_path = config.jmeter_script_dir
         script_file = get_all_script(script_path, ".jmx")
         script_command, result_jmeter_file_list = jmeter_cmd(script_file, config.jmeter_script_dir)
