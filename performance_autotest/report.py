@@ -21,7 +21,7 @@ class Report(object):
         logger.info("开始生成报告")
         load_result = self._change_to_load_table(result_list)
         nmon_result = self._change_to_nmon_table(nmon_list)
-        file = file_path + file_name
+        file = file_path + os.path.sep + file_name
         with open(file, "w") as report_file:
             report_file.write(load_result)
             report_file.write(nmon_result)
