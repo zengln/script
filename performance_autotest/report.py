@@ -10,17 +10,19 @@ from performance_autotest.customexception import CustomError
 
 class Report(object):
 
-    def get_report(self, result_list, nmon_list, file_name="report.html"):
+    def get_report(self, result_list, nmon_list, file_name="report.html", file_path=""):
         """
         :param result_list: 压测结果 list
         :param nmon_list : nmon 结果 List
-        :param file_name: html 全路径,不填默认当前路径
+        :param file_name: html 报告名称
+        :param file_path html 报告路径, 不填默认当前路径
         生成报告
         """
         logger.info("开始生成报告")
         load_result = self._change_to_load_table(result_list)
         nmon_result = self._change_to_nmon_table(nmon_list)
-        with open(file_name, "w") as report_file:
+        file = file_path + file_name
+        with open(file, "w") as report_file:
             report_file.write(load_result)
             report_file.write(nmon_result)
 
