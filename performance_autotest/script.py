@@ -16,6 +16,13 @@ def get_all_script(script_path, file_extension):
     :param file_extension: 文件类型
     :return:返回脚本文件列表
     """
+    # 如果是一个文件,判断后缀是否合法后,返回
+    if os.path.isfile(script_path):
+        if os.path.splitext(script_path)[1] == file_extension:
+            return [script_path]
+        else:
+            raise CustomError("检查到文件后缀与脚本类型不符, 预期脚本类型为: %s" % file_extension)
+
     script_files = []
     if not os.path.exists(script_path):
         raise CustomError("路径错误,文件夹不存在")
