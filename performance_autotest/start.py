@@ -154,12 +154,12 @@ try:
         # jmeter 生成脚本命令前, 检查 jmeter 程序是否存在
         check_exe()
         script_path = config.jmeter_script_dir
-        script_file = get_all_script(script_path, ".jmx")
-        script_command, result_jmeter_file_list = jmeter_cmd(script_file, config.jmeter_script_dir)
+        script_file, path = get_all_script(script_path, ".jmx")
+        script_command, result_jmeter_file_list = jmeter_cmd(script_file, path)
     elif not config.loadrunner_script_dir == "":
         script_path = config.loadrunner_script_dir
-        script_file = get_all_script(script_path, ".lrs")
-        script_command, result_analyse_command, result_loadrunner_file_list = lr_cmd(script_file, config.loadrunner_script_dir)
+        script_file, path = get_all_script(script_path, ".lrs")
+        script_command, result_analyse_command, result_loadrunner_file_list = lr_cmd(script_file, path)
     else:
         raise CustomError("脚本路径不能全为空")
 
