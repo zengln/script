@@ -19,13 +19,13 @@ def get_all_script(script_path, file_extension):
     # 如果是一个文件,判断后缀是否合法后,返回
     if os.path.isfile(script_path):
         if os.path.splitext(script_path)[1] == file_extension:
-            return [script_path]
+            return [os.path.split(script_path)[1]]
         else:
             raise CustomError("检查到文件后缀与脚本类型不符, 预期脚本类型为: %s" % file_extension)
 
     script_files = []
     if not os.path.exists(script_path):
-        raise CustomError("路径错误,文件夹不存在")
+        raise CustomError("路径错误,文件夹或者文件不存在: %s" % script_path)
 
     files = os.listdir(script_path)
     logger.debug("当前路径"+script_path+"下所有文件与文件夹")
@@ -155,12 +155,5 @@ def exe_command(command):
 
 
 if __name__ == '__main__':
-    # lr_path = r"C:\Users\zengjn\Desktop\Get\scenario"
-    jmeter_path = r'C:\Users\zengjn\Desktop\jemter'
-    files_jmeter = get_all_script(jmeter_path, ".jmx")
-    jmeter_command = jmeter_cmd(files_jmeter, jmeter_path)
-    #print("lr=============================")
-    #lr_files = get_all_script(lr_path, ".lrs")
-    #lr_command = lr_cmd(lr_files, lr_path)
-    print(jmeter_command[1])
-    # exe_command(jmeter_command[1])
+    print(get_all_script(r"D:\CDRDT_20_12.lrs", ".lrs"))
+
