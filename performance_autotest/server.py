@@ -99,11 +99,26 @@ class Server(object):
         self.file_list.sort()
         logger.info("%s 监控文件下载完成, 文件保存在 %s" % (self.server_name, download_local_path))
 
+    def get_file_handle_num(self) -> str:
+        '''
+        获取文件句柄数量
+        :return:
+        '''
+
+        get_file_handle = "lsof |wc -l"
+        return self.exec_command(get_file_handle)
+
+    def exec_command(self, command) -> str:
+        stdin, stdout, stderr = self.ssh.exec_command(command)
+        if stdout.channel.recv_exit_status():
+            err_msg = stderr.read().decode('utf-8')
+            raise CustomError(err_msg)
+        return stdout.read().decode('utf-8')
+
 
 if __name__ == "__main__":
     server = Server(config.ip0)
     server.connect(config.user0, config.passwd0)
-    server.start_nmon_control(config, "test")
-    server.download_nmon_files(config)
+    print(server.get_file_handle_num())
     server.close()
 
