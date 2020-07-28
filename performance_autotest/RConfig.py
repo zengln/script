@@ -2,9 +2,6 @@
 
 import configparser
 import os
-import traceback
-import time
-import sys
 
 from performance_autotest.customexception import CustomError
 
@@ -17,15 +14,15 @@ class Config(object):
             cls.__instance = super().__new__(cls)
         else:
             raise CustomError("Config 类只能含有一个实例, "
-                              "使用 from RConfig import confing 的方式导入实例"
-                              "或者使用类方法 get_instance 获取实例")
+                              "使用类方法 get_instance 获取实例")
 
         return cls.__instance
 
     def __init__(self):
         self.conf = configparser.ConfigParser()
-        if os.path.exists(".\\conf\\config_test.ini"):
-            self.conf.read(".\\conf\\config_test.ini", encoding="GBK")
+        config_path = os.path.dirname(__file__)
+        if os.path.exists(config_path+"\\conf\\config_test.ini"):
+            self.conf.read(config_path+"\\conf\\config_test.ini", encoding="GBK")
         else:
             raise CustomError("配置文件不存在")
 
@@ -39,6 +36,9 @@ class Config(object):
 
     @classmethod
     def get_instance(cls):
+        if not cls.__instance:
+            cls.__instance = Config()
+            cls.__instance.reload_all_value()
         return cls.__instance
 
     def set_default_value(self, section_item):
@@ -57,13 +57,3 @@ class Config(object):
             self.__setattr__(section_item[0], "")
 
         return True
-
-try:
-    config = Config()
-    config.reload_all_value()
-except:
-    error_msg = traceback.format_exc()
-    print(error_msg)
-    time.sleep(1)
-    input("按任意键退出")
-    sys.exit()

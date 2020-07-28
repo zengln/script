@@ -11,7 +11,7 @@ import subprocess
 
 from performance_autotest.customexception import CustomError
 from performance_autotest.script import *
-from performance_autotest.RConfig import config
+from performance_autotest.RConfig import Config
 from performance_autotest.server import Server
 from performance_autotest.log import logger
 from performance_autotest.resultdata import NmonAnalyse, JmeterAnalyse, LoadRunnerAnalyse
@@ -139,6 +139,7 @@ def analyse_loadrunner(loadrunner_file_list, loadrunner_result_list):
     logger.info("解析loadrunner文件结束")
 
 try:
+    config = Config.get_instance()
     # 保存结果文件路径
     result_jmeter_file_list = []
     result_loadrunner_file_list = []

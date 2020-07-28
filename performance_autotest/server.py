@@ -6,7 +6,7 @@
 import paramiko
 import os
 
-from performance_autotest.RConfig import config
+from performance_autotest.RConfig import Config
 from performance_autotest.customexception import CustomError
 from performance_autotest.log import logger
 
@@ -117,6 +117,7 @@ class Server(object):
 
 
 if __name__ == "__main__":
+    config = Config.get_instance()
     server = Server(config.ip0)
     server.connect(config.user0, config.passwd0)
     print(server.get_file_handle_num())
