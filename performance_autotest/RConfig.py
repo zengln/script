@@ -55,6 +55,8 @@ class Config(object):
             raise CustomError("后台服务器数量不能为空")
         elif section_item[0] == "report_name":
             self.__setattr__(section_item[0], "report.html")
+        elif section_item[0] == "run_in_win":
+            self.__setattr__(section_item[0], "1")
         else:
             self.__setattr__(section_item[0], "")
 

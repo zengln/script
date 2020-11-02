@@ -9,11 +9,11 @@ import time
 import sys
 import subprocess
 
+from performance_autotest.log import logger
 from performance_autotest.customexception import CustomError
 from performance_autotest.script import *
 from performance_autotest.RConfig import Config
 from performance_autotest.server import Server
-from performance_autotest.log import logger
 from performance_autotest.resultdata import NmonAnalyse, JmeterAnalyse, LoadRunnerAnalyse
 from performance_autotest.report import Report
 
@@ -138,7 +138,9 @@ def analyse_loadrunner(loadrunner_file_list, loadrunner_result_list):
 
     logger.info("解析loadrunner文件结束")
 
+
 try:
+    logger.error("*****************************************************")
     config = Config.get_instance()
     # 保存结果文件路径
     result_jmeter_file_list = []
@@ -158,6 +160,8 @@ try:
         script_file, path = get_all_script(script_path, ".jmx")
         script_command, result_jmeter_file_list = jmeter_cmd(script_file, path)
     elif not config.loadrunner_script_dir == "":
+        if config.run_in_win == "0":
+            raise CustomError("Loadrunner 压测方式暂不支持脚本在非 WINDOWS 机器上运行")
         script_path = config.loadrunner_script_dir
         script_file, path = get_all_script(script_path, ".lrs")
         script_command, result_analyse_command, result_loadrunner_file_list = lr_cmd(script_file, path)
@@ -200,6 +204,7 @@ try:
 except Exception:
     error_msg = traceback.format_exc()
     logger.error(error_msg)
+finally:
     time.sleep(1)
     input("按任意键退出")
     sys.exit()
