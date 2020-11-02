@@ -65,8 +65,10 @@ class Server(object):
                 raise CustomError(stderr.read().decode('utf-8'))
 
         nmon_filename = filename + ".nmon"
+        # 获取采集频率
+        nmon_data_rate = str(int(int(config.nmon_all_time)/int(config.nmon_acquisition_interval)))
         nmon_cmd = (self.path + "/nmon -F ./" + self.server_name + "/" + nmon_filename + " -t -s "
-                    + config.nmon_acquisition_interval + " -c " + config.nmon_all_time)
+                    + config.nmon_acquisition_interval + " -c " + nmon_data_rate)
 
         logger.debug("正在开启"+self.server_name+"监控,监控结果文件名为:"+nmon_filename)
         logger.debug("监控命令 %s" % nmon_cmd)
