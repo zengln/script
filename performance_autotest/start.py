@@ -195,7 +195,8 @@ try:
         raise CustomError("脚本路径不能全为空,解析结果失败")
 
     report = Report()
-    report.get_report(result_file_analyse_variable_list, result_nmon_variable_list, file_path=config.report_path)
+    report.get_report(result_file_analyse_variable_list, result_nmon_variable_list, file_name=config.report_name,
+                      file_path=config.report_path)
 except Exception:
     error_msg = traceback.format_exc()
     logger.error(error_msg)

@@ -21,8 +21,8 @@ class Config(object):
     def __init__(self):
         self.conf = configparser.ConfigParser()
         config_path = os.path.dirname(__file__)
-        if os.path.exists(config_path+"\\conf\\config_test.ini"):
-            self.conf.read(config_path+"\\conf\\config_test.ini", encoding="GBK")
+        if os.path.exists(config_path+"\\conf\\config.ini"):
+            self.conf.read(config_path+"\\conf\\config.ini", encoding="GBK")
         else:
             raise CustomError("配置文件不存在")
 
@@ -53,6 +53,8 @@ class Config(object):
             raise CustomError("存放监控文件路径不能为空")
         elif section_item[0] == "remote_host_num":
             raise CustomError("后台服务器数量不能为空")
+        elif section_item[0] == "report_name":
+            self.__setattr__(section_item[0], "report.html")
         else:
             self.__setattr__(section_item[0], "")
 

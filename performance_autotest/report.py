@@ -10,7 +10,7 @@ from performance_autotest.customexception import CustomError
 
 class Report(object):
 
-    def get_report(self, result_list, nmon_list, file_name="report.html", file_path=""):
+    def get_report(self, result_list, nmon_list, file_name, file_path=""):
         """
         :param result_list: 压测结果 list
         :param nmon_list : nmon 结果 List
