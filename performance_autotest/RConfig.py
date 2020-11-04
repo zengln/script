@@ -32,7 +32,7 @@ class Config(object):
             items = self.conf.items(section)
             for item in items:
                 if not self.set_default_value(item):
-                    self.__setattr__(item[0], item[1])
+                    self.__setattr__(item[0], item[1].strip())
 
     @classmethod
     def get_instance(cls):
