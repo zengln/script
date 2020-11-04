@@ -56,14 +56,13 @@ class Log(object):
 
 try:
     config = Config.get_instance()
-    if hasattr(config, "debug_mode") and config.debug_mode == str(True):
+    if hasattr(config, "debug_mode") and str.upper(config.debug_mode) == "TRUE":
         logger = Log(True).get_log()
     else:
         logger = Log().get_log()
 except Exception:
     error_msg = traceback.format_exc()
     print(error_msg)
-finally:
     time.sleep(1)
     input("按任意键退出")
     sys.exit()
