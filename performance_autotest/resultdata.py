@@ -78,13 +78,19 @@ class NmonAnalyse(FileAnalyse):
         """
         :param lines: 带 cpu 关键数据行
         """
+        # 解析数据错误行数
+        error_num = 0
         cpu_sum = float(0)
         for line in lines:
             cpus = line.split(",")
             # sys% datas[2] user datas[3]
             # total = sys + user
-            cpu_sum += (float(cpus[3]) + float(cpus[2]))
-        self.cpu = round(cpu_sum / len(lines), 2)
+            try:
+                cpu_sum += (float(cpus[3]) + float(cpus[2]))
+            except Exception:
+                logger.error("解析服务器ip为 %s 的 %s 监控文件的 cpu 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
+                error_num += 1
+        self.cpu = round(cpu_sum / (len(lines) - error_num), 2)
         logger.debug("cpu: %.2f%%" % self.cpu)
 
     def fetch_mem(self, lines):
@@ -92,6 +98,8 @@ class NmonAnalyse(FileAnalyse):
         获取 mem 的关键数据包括: 纯物理内存使用率, 包含虚拟内存的内存使用率(无则为0)
         :param lines: 带 mem 关键数据行
         """
+        # 解析数据错误行数
+        error_num = 0
         mem_sum = float(0)
         mem_virtual_sum = float(0)
         for line in lines:
@@ -107,9 +115,11 @@ class NmonAnalyse(FileAnalyse):
                 mem_virtual_sum += ((float(mems[6]) - float(mems[4]) + float(mems[7]) - float(mems[5])) / (
                             float(mems[6]) + float(mems[7])) * 100)
             else:
-                raise CustomError("暂不支持此内存页面数据读取")
+                logger.error("解析服务器ip为 %s 的 %s 监控文件的 MEM 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
+                error_num += 1
+                continue
 
-        self.mem = (round(mem_sum / len(lines), 2), round(mem_virtual_sum / len(lines), 2))
+        self.mem = (round(mem_sum / (len(lines) - error_num), 2), round(mem_virtual_sum / (len(lines) - error_num), 2))
         logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
 
     def fetch_disk(self, lines):
