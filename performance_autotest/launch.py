@@ -172,60 +172,56 @@ class Launch(object):
             raise CustomError("Loadrunner 压测方式暂不支持脚本在非 WINDOWS 机器上运行")
 
     def start(self):
-        try:
-            logger.error("*****************************************************")
-            self.check_dir(self.config.download_local_path)
+        logger.error("*****************************************************")
+        self.check_dir(self.config.download_local_path)
 
-            # 生成脚本运行命令
-            if self.config.type == "1":
-                # 判断参数是否填写
-                self.check_jmeter_config_param()
-                # jmeter 生成脚本命令前, 检查 jmeter 程序是否存在
-                self.check_exe()
-                script_path = self.config.jmeter_script_dir
-                script_file, path = get_all_script(script_path, ".jmx")
-                script_command, result_jmeter_file_list = jmeter_cmd(script_file, path)
-            elif self.config.type == "2":
-                self.check_loadrunner_config_param()
-                script_path = self.config.loadrunner_script_dir
-                script_file, path = get_all_script(script_path, ".lrs")
-                script_command, result_analyse_command, result_loadrunner_file_list = lr_cmd(script_file, path)
-            else:
-                raise CustomError("参数type值只能为1或者2,目前值 %s 非法" % self.config.type)
+        # 生成脚本运行命令
+        if self.config.type == "1":
+            # 判断参数是否填写
+            self.check_jmeter_config_param()
+            # jmeter 生成脚本命令前, 检查 jmeter 程序是否存在
+            self.check_exe()
+            script_path = self.config.jmeter_script_dir
+            script_file, path = get_all_script(script_path, ".jmx")
+            script_command, result_jmeter_file_list = jmeter_cmd(script_file, path)
+        elif self.config.type == "2":
+            self.check_loadrunner_config_param()
+            script_path = self.config.loadrunner_script_dir
+            script_file, path = get_all_script(script_path, ".lrs")
+            script_command, result_analyse_command, result_loadrunner_file_list = lr_cmd(script_file, path)
+        else:
+            raise CustomError("参数type值只能为1或者2,目前值 %s 非法" % self.config.type)
 
-            # 连接后台服务器,运行脚本,开启监控
-            self.servers_connect()
-            for command in script_command:
-                index = script_command.index(command)
-                self.servers_start_nmon_control(script_file[index])
+        # 连接后台服务器,运行脚本,开启监控
+        self.servers_connect()
+        for command in script_command:
+            index = script_command.index(command)
+            self.servers_start_nmon_control(script_file[index])
+            exe_command(command)
+
+        # 下载nmon文件,关闭后台连接
+        self.servers_close()
+
+        # 如果是loadrunner需要额外调用命令,解析文件
+        if not self.config.loadrunner_script_dir == "" and self.config.jmeter_script_dir == "":
+            if len(result_analyse_command) == 0:
+                raise CustomError("无法获取 loadrunner 解析命令")
+            for command in result_analyse_command:
                 exe_command(command)
 
-            # 下载nmon文件,关闭后台连接
-            self.servers_close()
+        self.analyse_nmon(self.servers, self.result_nmon_variable_list)
+        if not self.config.jmeter_script_dir == "":
+            if len(result_jmeter_file_list) == 0:
+                raise CustomError("jmeter 解析时出现异常,找不到结果文件所在路径")
+            self.analyse_jmeter(result_jmeter_file_list, self.result_file_analyse_variable_list)
+        elif not self.config.loadrunner_script_dir == "":
+            if len(result_loadrunner_file_list) == 0:
+                raise CustomError("loadrunner 解析时出现异常,找不到结果文件所在路径")
+            self.analyse_loadrunner(result_loadrunner_file_list, self.result_file_analyse_variable_list)
+        else:
+            raise CustomError("脚本路径不能全为空,解析结果失败")
 
-            # 如果是loadrunner需要额外调用命令,解析文件
-            if not self.config.loadrunner_script_dir == "" and self.config.jmeter_script_dir == "":
-                if len(result_analyse_command) == 0:
-                    raise CustomError("无法获取 loadrunner 解析命令")
-                for command in result_analyse_command:
-                    exe_command(command)
-
-            self.analyse_nmon(self.servers, self.result_nmon_variable_list)
-            if not self.config.jmeter_script_dir == "":
-                if len(result_jmeter_file_list) == 0:
-                    raise CustomError("jmeter 解析时出现异常,找不到结果文件所在路径")
-                self.analyse_jmeter(result_jmeter_file_list, self.result_file_analyse_variable_list)
-            elif not self.config.loadrunner_script_dir == "":
-                if len(result_loadrunner_file_list) == 0:
-                    raise CustomError("loadrunner 解析时出现异常,找不到结果文件所在路径")
-                self.analyse_loadrunner(result_loadrunner_file_list, self.result_file_analyse_variable_list)
-            else:
-                raise CustomError("脚本路径不能全为空,解析结果失败")
-
-            report = Report()
-            report.get_report(self.result_file_analyse_variable_list, self.result_nmon_variable_list,
-                              file_name=self.config.report_name,
-                              file_path=self.config.report_path)
-        except Exception:
-            error_msg = traceback.format_exc()
-            logger.error(error_msg)
+        report = Report()
+        report.get_report(self.result_file_analyse_variable_list, self.result_nmon_variable_list,
+                          file_name=self.config.report_name,
+                          file_path=self.config.report_path)
