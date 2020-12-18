@@ -1,0 +1,19 @@
+TODO List
+1. 大 jtl 文件解析
+2. jmeter 支持服务器运行
+3. 添加oracle数据库awr报告解析到最终报告中
+4. 可视化(已做)
+5. 优化：运行前检查项统一：
+    1) 如果运行在windows机子上,使用jmeter压测
+        a. 判断jmeter是否在运行
+        b. 判断jmeter是否配置环境变量
+    2) 如果运行在Windows机子上，使用Loadrunner压测
+        a. 判断loadrunner是否加入环境变量
+    3) 如果运行在Linux上, 使用jmeter压测
+        a. 判断jmeter远程机子的ip和端口是否填写
+        b. 判断jmter是否配置环境变量
+        c. 判断jmeter是否在运行
+    4) 如果运行在Linux上, 使用loadrunner压测
+        a.报错提示此配置不合法
+【完成】6、ip为空判断，为空则跳过。不连接
+7.解决重复跑脚本,jmeter报错问题
