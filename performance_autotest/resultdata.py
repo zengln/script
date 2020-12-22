@@ -39,7 +39,7 @@ class NmonAnalyse(FileAnalyse):
         self.net = float(0)
         # cpu 负载数据, 记录cpu_total的数据
         self.cpus = []
-        # 内存负载数据
+        # 内存负载数
         self.mems = []
         # 网络负载数据
         self.nets = []
@@ -92,7 +92,20 @@ class NmonAnalyse(FileAnalyse):
         self.fetch_disk(disk_line)
         logger.info("开始提取网络数据")
         self.fetch_net(net_line)
+
+        # 获取时间, 用于后续生成图像数据的X轴
+        self.fetch_time(time_line)
         logger.info("%s 文件数据解析结束" % os.path.basename(file))
+
+    def fetch_time(self, lines):
+        '''
+        提取监控采集点的时间
+        :param lines:
+        :return: None
+        '''
+        for line in lines:
+            times = line.split(",")
+            self.time.append(times[2])
 
     def fetch_cpu(self, lines):
         """
@@ -127,8 +140,14 @@ class NmonAnalyse(FileAnalyse):
         """
         # 解析数据错误行数
         error_num = 0
+        # 内存总负载
         mem_sum = float(0)
+        # 虚拟内存总负载
         mem_virtual_sum = float(0)
+        # 总内存监控数据
+        mems_total = []
+        # 空闲内存监控数据
+        mems_free = []
 
         for line in lines:
             mems = line.split(",")
@@ -136,19 +155,27 @@ class NmonAnalyse(FileAnalyse):
                 # (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
                 mem_sum += ((float(mems[2]) - float(mems[6]) - float(mems[11]) - float(mems[14])) / float(
                     mems[2]) * 100)
-
+                mems_total.append(float(mems[2]))
+                mems_free.append(float(mems[6]))
             elif len(mems) == 8:
                 # (Real total - Real free)/Real total * 100
                 mem_sum += ((float(mems[6]) - float(mems[4])) / float(mems[6]) * 100)
                 # (Real total - Real free + Virtual total - Virtual free) /(Real total + Virtual total) * 100
                 mem_virtual_sum += ((float(mems[6]) - float(mems[4]) + float(mems[7]) - float(mems[5])) / (
                             float(mems[6]) + float(mems[7])) * 100)
+                mems_total.append(float(mems[6]))
+                mems_free.append(float(mems[4]))
             else:
                 logger.error("解析服务器ip为 %s 的 %s 监控文件的 MEM 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
                 error_num += 1
 
         self.mem = (round(mem_sum / (len(lines) - error_num), 2), round(mem_virtual_sum / (len(lines) - error_num), 2))
+        self.mems.append(mems_total, mems_free)
         logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
+        logger.debug("总内存监控数据:")
+        logger.debug(self.mems[0])
+        logger.debug("空闲内存监控数据:")
+        logger.debug(self.mems[1])
 
     def fetch_disk(self, lines):
         """
