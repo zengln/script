@@ -3,6 +3,8 @@
 # @Author  : zengln
 # @File    : report.py
 
+import matplotlib.pyplot as plt
+
 from performance_autotest.resultdata import *
 from performance_autotest.log import logger
 from performance_autotest.customexception import CustomError
@@ -177,6 +179,21 @@ class Report(object):
 
             html_str += summary_html_one
         return html_str + "</table>"
+
+    def _create_line_char(self, x, y, path, title, name):
+        '''
+        根据给出的数据, 创建折线图
+        :param x: x轴数据
+        :param y: y轴数据
+        :param path: 图片保存路径
+        :param title 图片标题
+        :param name: 图片名称
+        :return: None
+        '''
+        plt.plot(x, y)
+        plt.title(title)
+        plt.savefig(path + os.path.sep + name)
+
 
 
 if __name__ == '__main__':
