@@ -27,10 +27,26 @@ class NmonAnalyse(FileAnalyse):
     def __init__(self):
         # 初始化变量
         super().__init__()
+        # 初始化ip
+        self.ip = "未设置IP地址"
+        # cpu平均负载
         self.cpu = float(0)
+        # 内存平均负载
         self.mem = float(0)
+        # 磁盘负载
         self.disk = float(0)
+        # 网络负载
         self.net = float(0)
+        # cpu 负载数据, 记录cpu_total的数据
+        self.cpus = []
+        # 内存负载数据
+        self.mems = []
+        # 网络负载数据
+        self.nets = []
+        # 磁盘负载数据
+        self.disks = []
+        # 监控时间,生成报告图表中的X轴使用数据
+        self.time = []
 
     def set_ip(self, ip):
         self.ip = ip
@@ -46,6 +62,7 @@ class NmonAnalyse(FileAnalyse):
         mem_line = []
         disk_line = []
         net_line = []
+        time_line = []
         # 打开文件, 提取存有关键数据的行
         with open(file, "r", encoding='utf8') as nmonfile:
             text = nmonfile.readlines()
@@ -62,6 +79,9 @@ class NmonAnalyse(FileAnalyse):
                 # net
                 elif "NET," in line:
                     net_line.append(line)
+                # time
+                elif "ZZZZ,T" in line:
+                    time_line.append(line)
 
         # 分别对关键数据进行处理
         logger.info("开始提取cpu数据")
@@ -80,18 +100,25 @@ class NmonAnalyse(FileAnalyse):
         """
         # 解析数据错误行数
         error_num = 0
+        # cpu总负载
         cpu_sum = float(0)
+        # cpu负载数据
+        cpu_num_list = []
         for line in lines:
             cpus = line.split(",")
             # sys% datas[2] user datas[3]
             # total = sys + user
             try:
                 cpu_sum += (float(cpus[3]) + float(cpus[2]))
+                cpu_num_list.append(cpu_sum)
             except Exception:
                 logger.error("解析服务器ip为 %s 的 %s 监控文件的 cpu 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
                 error_num += 1
         self.cpu = round(cpu_sum / (len(lines) - error_num), 2)
+        self.cpus = cpu_num_list
         logger.debug("cpu: %.2f%%" % self.cpu)
+        logger.debug("监控到所有CPU数据:")
+        logger.debug(self.cpus)
 
     def fetch_mem(self, lines):
         """
@@ -102,12 +129,14 @@ class NmonAnalyse(FileAnalyse):
         error_num = 0
         mem_sum = float(0)
         mem_virtual_sum = float(0)
+
         for line in lines:
             mems = line.split(",")
             if len(mems) == 17:
                 # (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
                 mem_sum += ((float(mems[2]) - float(mems[6]) - float(mems[11]) - float(mems[14])) / float(
                     mems[2]) * 100)
+
             elif len(mems) == 8:
                 # (Real total - Real free)/Real total * 100
                 mem_sum += ((float(mems[6]) - float(mems[4])) / float(mems[6]) * 100)
@@ -117,7 +146,6 @@ class NmonAnalyse(FileAnalyse):
             else:
                 logger.error("解析服务器ip为 %s 的 %s 监控文件的 MEM 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
                 error_num += 1
-                continue
 
         self.mem = (round(mem_sum / (len(lines) - error_num), 2), round(mem_virtual_sum / (len(lines) - error_num), 2))
         logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
