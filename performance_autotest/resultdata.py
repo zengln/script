@@ -122,8 +122,9 @@ class NmonAnalyse(FileAnalyse):
             # sys% datas[2] user datas[3]
             # total = sys + user
             try:
-                cpu_sum += (float(cpus[3]) + float(cpus[2]))
-                cpu_num_list.append(cpu_sum)
+                line_cpu_sum = float(cpus[3]) + float(cpus[2])
+                cpu_sum += line_cpu_sum
+                cpu_num_list.append(line_cpu_sum)
             except Exception:
                 logger.error("解析服务器ip为 %s 的 %s 监控文件的 cpu 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
                 error_num += 1
@@ -170,7 +171,8 @@ class NmonAnalyse(FileAnalyse):
                 error_num += 1
 
         self.mem = (round(mem_sum / (len(lines) - error_num), 2), round(mem_virtual_sum / (len(lines) - error_num), 2))
-        self.mems.append(mems_total, mems_free)
+        self.mems.append(mems_total)
+        self.mems.append(mems_free)
         logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
         logger.debug("总内存监控数据:")
         logger.debug(self.mems[0])
