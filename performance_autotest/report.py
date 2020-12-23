@@ -17,9 +17,11 @@ class Report(object):
     # CPU 折线图的Title
     CPU_PIC_TITLE = "CPU 总负载"
     # CPU 图 Y 轴标签
-    CPU_PIC_Y_LABEL = "CPU 总负载(%)"
+    CPU_PIC_Y_LABEL = "user% + sys%"
     # CPU 图 X 轴标签
     CPU_PIC_X_LABEL = "时间(HH:mm:ss)"
+    # 刻度
+    PIC_TICK = 15
 
     def get_report(self, result_list, nmon_list, file_name, file_path=""):
         """
@@ -200,13 +202,20 @@ class Report(object):
         if len(x) == 0 or len(y) == 0:
             return False
 
+        # x,y 数据量不一致时会报错, 先判断一下x,y长度是否一致
+        # 不一致则将较长的数据截取
+        if len(x) > len(y):
+            x = x[0:len(y)]
+        elif len(x) < len(y):
+            y = y[0:len(x)]
+
         # 设置 X 轴刻度, 数据太多 X 轴会显示太密, 抽取 X 轴部分数据作为刻度
-        if len(x) > 15:
+        if len(x) > report.PIC_TICK:
             temp_x = []
-            interval = len(x) // 15
+            interval = len(x) // report.PIC_TICK
             for index in range(0, len(x), interval):
                 temp_x.append(x[index])
-            temp_x.append(x[-1])
+            temp_x[-1] = x[-1]
             tick_x = temp_x
         else:
             tick_x = x
@@ -228,7 +237,7 @@ class Report(object):
 if __name__ == '__main__':
     nmon_list = []
     # nmon_file = [r'D:\work\工具\nmon\71Vusr.nmon', r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon']
-    nmon_file = [r'D:\work\工具\nmon\71Vusr.nmon']
+    nmon_file = [r'D:\pycharm\workspace\ztools\performance_autotest\test\nmon\组合场景-50-12h-129.nmon']
     for index in range(0, len(nmon_file)):
         nmon = NmonAnalyse()
         nmon.ip = "127.0.0.1"
@@ -251,5 +260,6 @@ if __name__ == '__main__':
     #
     report = Report()
     report._create_cpu_char(nmon_list[0].time, nmon_list[0].cpus, ".")
+
     # report.get_report(loadrunner_list, nmon_list)
 
