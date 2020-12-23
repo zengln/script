@@ -12,6 +12,15 @@ from performance_autotest.customexception import CustomError
 
 class Report(object):
 
+    # CPU 图片名称
+    CPU_PIC_NAME = "CPU.png"
+    # CPU 折线图的Title
+    CPU_PIC_TITLE = "CPU 总负载"
+    # CPU 图 Y 轴标签
+    CPU_PIC_Y_LABEL = "CPU 总负载(%)"
+    # CPU 图 X 轴标签
+    CPU_PIC_X_LABEL = "时间(HH:mm:ss)"
+
     def get_report(self, result_list, nmon_list, file_name, file_path=""):
         """
         :param result_list: 压测结果 list
@@ -180,44 +189,67 @@ class Report(object):
             html_str += summary_html_one
         return html_str + "</table>"
 
-    def _create_line_char(self, x, y, path, title, name):
+    def _create_cpu_char(self, x, y, path):
         '''
-        根据给出的数据, 创建折线图
+        根据监控数据数据, 生成 CPU 负载图
         :param x: x轴数据
         :param y: y轴数据
         :param path: 图片保存路径
-        :param title 图片标题
-        :param name: 图片名称
-        :return: None
+        :return: 是否成功生成图片
         '''
+        if len(x) == 0 or len(y) == 0:
+            return False
+
+        # 设置 X 轴刻度, 数据太多 X 轴会显示太密, 抽取 X 轴部分数据作为刻度
+        if len(x) > 15:
+            temp_x = []
+            interval = len(x) // 15
+            for index in range(0, len(x), interval):
+                temp_x.append(x[index])
+            temp_x.append(x[-1])
+            tick_x = temp_x
+        else:
+            tick_x = x
+
+        # 设置图片大小
+        plt.figure(figsize=(16, 8))
+        # 设置字体
+        plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.plot(x, y)
-        plt.title(title)
-        plt.savefig(path + os.path.sep + name)
+        plt.xticks(tick_x)
+        plt.xlabel(Report.CPU_PIC_X_LABEL)
+        plt.ylabel(Report.CPU_PIC_Y_LABEL)
+        plt.title(Report.CPU_PIC_TITLE)
+        plt.savefig(path + os.path.sep + Report.CPU_PIC_NAME)
+        return True
 
 
 
 if __name__ == '__main__':
     nmon_list = []
-    nmon_file = [r'D:\work\工具\nmon\71Vusr.nmon', r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon']
+    # nmon_file = [r'D:\work\工具\nmon\71Vusr.nmon', r'D:\work\工具\nmon\znzfdb1_190703_1936.nmon']
+    nmon_file = [r'D:\work\工具\nmon\71Vusr.nmon']
     for index in range(0, len(nmon_file)):
         nmon = NmonAnalyse()
         nmon.ip = "127.0.0.1"
         nmon.file_analyse(nmon_file[index])
         nmon_list.append(nmon)
 
-    jmeter_list = []
-    jmeter_file = [r"C:\Users\zengjn\Desktop\jemter\get", r"C:\Users\zengjn\Desktop\jemter\get_1"]
-    for index in range(0, len(jmeter_file)):
-        jmeter = JmeterAnalyse()
-        jmeter.file_analyse(jmeter_file[index])
-        jmeter_list.append(jmeter)
-
-    loadrunner_list = []
-    loadrunner_file = [r'C:\Users\zengjn\Desktop\Get\scenario\Scenario-5', r'C:\Users\zengjn\Desktop\Get\scenario\res', r'C:\Users\zengjn\Desktop\get1\res\res']
-    for index in range(0, len(loadrunner_file)):
-        loadrunner = LoadRunnerAnalyse()
-        loadrunner.file_analyse(loadrunner_file[index])
-        loadrunner_list.append(loadrunner)
-
+    # jmeter_list = []
+    # jmeter_file = [r"C:\Users\zengjn\Desktop\jemter\get", r"C:\Users\zengjn\Desktop\jemter\get_1"]
+    # for index in range(0, len(jmeter_file)):
+    #     jmeter = JmeterAnalyse()
+    #     jmeter.file_analyse(jmeter_file[index])
+    #     jmeter_list.append(jmeter)
+    #
+    # loadrunner_list = []
+    # loadrunner_file = [r'C:\Users\zengjn\Desktop\Get\scenario\Scenario-5', r'C:\Users\zengjn\Desktop\Get\scenario\res', r'C:\Users\zengjn\Desktop\get1\res\res']
+    # for index in range(0, len(loadrunner_file)):
+    #     loadrunner = LoadRunnerAnalyse()
+    #     loadrunner.file_analyse(loadrunner_file[index])
+    #     loadrunner_list.append(loadrunner)
+    #
     report = Report()
-    report.get_report(loadrunner_list, nmon_list)
+    report._create_cpu_char(nmon_list[0].time, nmon_list[0].cpus, ".")
+    # report.get_report(loadrunner_list, nmon_list)
+
