@@ -81,6 +81,13 @@ class NmonAnalyse(FileAnalyse):
                     net_line.append(line)
                 # time
                 elif "ZZZZ,T" in line:
+                    # NMON 文件中存在监控数据未与其他行分隔开
+                    # 判断当前数据行是否以 "ZZZZ,T" 开头, 如果不是则分割
+                    index = line.find("ZZZZ,T")
+                    print(type(line))
+                    if index != 0:
+                        line = line[index:-1]
+
                     time_line.append(line)
 
         # 分别对关键数据进行处理
@@ -118,6 +125,13 @@ class NmonAnalyse(FileAnalyse):
         # cpu负载数据
         cpu_num_list = []
         for line in lines:
+            # NMON 文件中存在监控数据未与其他行分隔开
+            # 判断当前数据行是否以 "CPU_ALL,T" 开头, 如果不是则分割
+            index = line.find("CPU_ALL,T")
+            if index != 0:
+                line = line[index:-1]
+
+            # cpu 数据计算
             cpus = line.split(",")
             # sys% datas[2] user datas[3]
             # total = sys + user
@@ -151,6 +165,12 @@ class NmonAnalyse(FileAnalyse):
         mems_free = []
 
         for line in lines:
+            # NMON 文件中存在监控数据未与其他行分隔开
+            # 判断当前数据行是否以 "MEM,T" 开头, 如果不是则分割
+            index = line.find("MEM,T")
+            if index != 0:
+                line = line[index:-1]
+
             mems = line.split(",")
             if len(mems) == 17:
                 # (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
@@ -201,6 +221,12 @@ class NmonAnalyse(FileAnalyse):
         diskio_num = 0
         diskbusy_num = 0
         for line in lines:
+            # NMON 文件中存在监控数据未与其他行分隔开
+            # 判断当前数据行是否以 "DISK" 开头, 如果不是则分割
+            index = line.find("DISK")
+            if index != 0:
+                line = line[index:-1]
+
             disks = line.split(",")
             if "DISKREAD,T" in line:
                 # diskread
@@ -275,6 +301,12 @@ class NmonAnalyse(FileAnalyse):
         net_write_max = float(0)
 
         for line in lines:
+            # NMON 文件中存在监控数据未与其他行分隔开
+            # 判断当前数据行是否以 "NET" 开头, 如果不是则分割
+            index = line.find("NET")
+            if index != 0:
+                line = line[index:-1]
+
             disks = line.split(",")
             if not "NET,T" in line:
                 for net_name_index in range(2, len(disks)):
