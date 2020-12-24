@@ -84,7 +84,6 @@ class NmonAnalyse(FileAnalyse):
                     # NMON 文件中存在监控数据未与其他行分隔开
                     # 判断当前数据行是否以 "ZZZZ,T" 开头, 如果不是则分割
                     index = line.find("ZZZZ,T")
-                    print(type(line))
                     if index != 0:
                         line = line[index:-1]
 
