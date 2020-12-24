@@ -14,12 +14,24 @@ class Report(object):
 
     # CPU 图片名称
     CPU_PIC_NAME = "CPU.png"
+    # MEM 图片名称
+    MEM_PIC_NAME = "MEM.png"
     # CPU 折线图的Title
     CPU_PIC_TITLE = "CPU 总负载"
+    # MEM 折线图Title
+    MEM_PIC_TITLE = "MEM 负载"
     # CPU 图 Y 轴标签
     CPU_PIC_Y_LABEL = "user% + sys%"
+    # MEM 图 Y 轴标签
+    MEM_PIC_Y_LABEL = "mem use and mem free (%)"
     # CPU 图 X 轴标签
     CPU_PIC_X_LABEL = "时间(HH:mm:ss)"
+    # MEM 图 X 轴标签
+    MEM_PIC_X_LABEL = "时间(HH:mm:ss)"
+    # MEM TOTAL label 名称
+    MEM_TOTAL = "MEM USE 实际使用内存(%)"
+    # MEM FREE label 名称
+    MEM_FREE = "MEM FREE 空闲内存(%)"
     # 刻度
     PIC_TICK = 15
 
@@ -195,7 +207,7 @@ class Report(object):
         '''
         根据监控数据数据, 生成 CPU 负载图
         :param x: x轴数据
-        :param y: y轴数据
+        :param y: y轴数据,总cpu负载数据
         :param path: 图片保存路径
         :return: 是否成功生成图片
         '''
@@ -220,16 +232,70 @@ class Report(object):
         else:
             tick_x = x
 
+        tick_y = [x for x in range(0, 101, 5)]
+
         # 设置图片大小
         plt.figure(figsize=(16, 8))
         # 设置字体
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.plot(x, y)
         plt.xticks(tick_x)
+        plt.yticks(tick_y)
         plt.xlabel(Report.CPU_PIC_X_LABEL)
         plt.ylabel(Report.CPU_PIC_Y_LABEL)
         plt.title(Report.CPU_PIC_TITLE)
         plt.savefig(path + os.path.sep + Report.CPU_PIC_NAME)
+        return True
+
+    def _create_mem_char(self, x, y, path):
+        '''
+        生成nmon 内存图
+        :param x: x 轴数据
+        :param y: y 轴数据,包括总内存与空闲内存数据[mem_total,mem_free]
+        :param path: 图片保存路径
+        :return: 图片是否生成成功
+        '''
+        # 没有获取到数据则直接返回失败
+        if len(y[0]) == 0 or len(y[1]) == 0 or len(x) == 0:
+            return False
+
+        # 数据截取成一样长度
+        min_num = min(len(x), len(y[0]), len(y[1]))
+
+        if len(x) > min_num:
+            x = x[:min_num]
+        elif len(y[0]) > min_num:
+            y[0] = y[0][:min_num]
+        elif len(y[1]) > min_num:
+            y[1] = y[1][:min_num]
+
+        # 设置 X 轴刻度, 数据太多 X 轴会显示太密, 抽取 X 轴部分数据作为刻度
+        if len(x) > report.PIC_TICK:
+            temp_x = []
+            interval = len(x) // report.PIC_TICK
+            for index in range(0, len(x), interval):
+                temp_x.append(x[index])
+            temp_x[-1] = x[-1]
+            tick_x = temp_x
+        else:
+            tick_x = x
+
+        tick_y = [x for x in range(0, 101, 5)]
+
+        # 设置图片大小
+        plt.figure(figsize=(16, 8))
+        # 设置字体
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.plot(x, y[0], label=Report.MEM_TOTAL)
+        plt.plot(x, y[1], label=Report.MEM_FREE)
+        plt.xticks(tick_x)
+        plt.yticks(tick_y)
+        plt.xlabel(Report.MEM_PIC_X_LABEL)
+        plt.ylabel(Report.MEM_PIC_Y_LABEL)
+        plt.title(Report.MEM_PIC_TITLE)
+        # 图例位置自适应
+        plt.legend(loc='best')
+        plt.savefig(path + os.path.sep + Report.MEM_PIC_NAME)
         return True
 
 
@@ -260,6 +326,7 @@ if __name__ == '__main__':
     #
     report = Report()
     report._create_cpu_char(nmon_list[0].time, nmon_list[0].cpus, ".")
+    report._create_mem_char(nmon_list[0].time, nmon_list[0].mems, ".")
 
     # report.get_report(loadrunner_list, nmon_list)
 
