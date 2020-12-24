@@ -226,6 +226,10 @@ class NmonAnalyse(FileAnalyse):
         diskwrite_num = 0
         diskio_num = 0
         diskbusy_num = 0
+
+        disks_read = []
+        disks_write = []
+        disks_io = []
         for line in lines:
             # NMON 文件中存在监控数据未与其他行分隔开
             # 判断当前数据行是否以 "DISK" 开头, 如果不是则分割
@@ -240,6 +244,8 @@ class NmonAnalyse(FileAnalyse):
                 # 统计每行之和
                 for diskread_index in range(2, len(disks)):
                     disk_read_line_sum += float(disks[diskread_index])
+
+                disks_read.append(disk_read_line_sum)
                 # 累加
                 diskread_sum += disk_read_line_sum
                 # 计算总行数
@@ -250,6 +256,8 @@ class NmonAnalyse(FileAnalyse):
                 # 统计每行之和
                 for diskwrite_index in range(2, len(disks)):
                     disk_write_line_sum += float(disks[diskwrite_index])
+
+                disks_write.append(disk_write_line_sum)
                 # 累加
                 diskwrite_sum += disk_write_line_sum
                 # 计算总行数
@@ -266,21 +274,33 @@ class NmonAnalyse(FileAnalyse):
                 diskio_num += 1
             elif "DISKBUSY,T" in line:
                 # 获取 busi 每列初始值
-                if len(diskbusy_avg) == 0:
-                    for disk_busy_line_index in range(2, len(disks)):
-                        diskbusy_avg.append(float(disks[disk_busy_line_index]))
-                else:
-                    diskbusy_num += 1
                     # 计算 busi 每列均值
                     for disk_busy_line_index in range(2, len(disks)):
-                        diskbusy_avg[disk_busy_line_index - 2] = (float(
-                            diskbusy_avg[disk_busy_line_index - 2]) * diskbusy_num + float(
-                            disks[disk_busy_line_index])) / (diskbusy_num + 1)
+                        if diskbusy_num == 0:
+                            diskbusy_avg.append(float(disks[disk_busy_line_index]))
+                            disks_io.append([float(disks[disk_busy_line_index])])
+                        else:
+                            diskbusy_avg[disk_busy_line_index - 2] = (float(
+                                diskbusy_avg[disk_busy_line_index - 2]) * diskbusy_num + float(
+                                disks[disk_busy_line_index])) / (diskbusy_num + 1)
+                        disks_io[disk_busy_line_index - 2].append(float(disks[disk_busy_line_index]))
+
+                    diskbusy_num += 1
 
         # 获取 busi 最大列的均值
         for disk_busy in diskbusy_avg:
             if disk_busy > diskbusy_max:
                 diskbusy_max = disk_busy
+
+        diskbusy_max_index = diskbusy_avg.index(diskbusy_max)
+        self.disks = disks_io[diskbusy_max_index]
+
+        logger.debug("DISK WRITE NMON DATA:")
+        logger.debug(disks_write)
+        logger.debug("DISK READ NMON DATA:")
+        logger.debug(disks_read)
+        logger.debug("DISK BUSY NMOM DATA:")
+        logger.debug(disks_io[diskbusy_max_index])
 
         self.disk = (round(diskread_sum / diskread_num, 2), round(diskwrite_sum / diskwrite_num, 2),
                      round(diskio_sum / diskio_num, 2), round(diskbusy_max, 2))
