@@ -16,24 +16,36 @@ class Report(object):
     CPU_PIC_NAME = "CPU.png"
     # MEM 图片名称
     MEM_PIC_NAME = "MEM.png"
+    # DISK 图片名称
+    DISK_PIC_NAME = "DISK.png"
     # CPU 折线图的Title
     CPU_PIC_TITLE = "CPU 总负载"
     # MEM 折线图Title
     MEM_PIC_TITLE = "MEM 负载"
+    # DISK 图片Title
+    DISK_PIC_TITLE = "DISK 负载"
     # CPU 图 Y 轴标签
     CPU_PIC_Y_LABEL = "user% + sys%"
     # MEM 图 Y 轴标签
     MEM_PIC_Y_LABEL = "mem use and mem free (%)"
+    # DISK 图左 Y 轴标签
+    DISK_PIC_LY_LABEL = "disk write/read (kb/s)"
+    # DISK 图右 Y 轴标签
+    DISK_PIC_RY_LABEL = "disk io (IO/s)"
     # CPU 图 X 轴标签
     CPU_PIC_X_LABEL = "时间(HH:mm:ss)"
     # MEM 图 X 轴标签
     MEM_PIC_X_LABEL = "时间(HH:mm:ss)"
-    # MEM TOTAL label 名称
-    MEM_TOTAL = "MEM USE 实际使用内存(%)"
-    # MEM FREE label 名称
-    MEM_FREE = "MEM FREE 空闲内存(%)"
+    # DISK 图 X 轴标签
+    DISK_PIC_X_LABEL = "时间(HH:mm:ss)"
     # 刻度
     PIC_TICK = 15
+
+    MEM_TOTAL = "MEM USE 实际使用内存(%)"
+    MEM_FREE = "MEM FREE 空闲内存(%)"
+    DISK_WRITE = "DISK WRITE (kb/s)"
+    DISK_READ = "DISK READ (kb/s)"
+    DISK_IO = "DISK IO (IO/s)"
 
     def get_report(self, result_list, nmon_list, file_name, file_path=""):
         """
@@ -259,15 +271,17 @@ class Report(object):
         if len(y[0]) == 0 or len(y[1]) == 0 or len(x) == 0:
             return False
 
-        # 数据截取成一样长度
-        min_num = min(len(x), len(y[0]), len(y[1]))
+        if len(x) != len(y[0]):
+            if len(x) > len(y[0]):
+                x = x[:len(y[0])]
+            else:
+                y[0] = y[0][:len(x)]
 
-        if len(x) > min_num:
-            x = x[:min_num]
-        elif len(y[0]) > min_num:
-            y[0] = y[0][:min_num]
-        elif len(y[1]) > min_num:
-            y[1] = y[1][:min_num]
+        if len(x) != len(y[1]):
+            if len(x) > len(y[1]):
+                x = x[:len(y[1])]
+            else:
+                y[1] = y[1][:len(x)]
 
         # 设置 X 轴刻度, 数据太多 X 轴会显示太密, 抽取 X 轴部分数据作为刻度
         if len(x) > report.PIC_TICK:
@@ -298,7 +312,69 @@ class Report(object):
         plt.savefig(path + os.path.sep + Report.MEM_PIC_NAME)
         return True
 
+    def _create_disk_char(self, x, y, path):
+        '''
+        生成nmon 磁盘图
+        :param x: x 轴数据
+        :param y: y 轴数据,包括disk write、disk read、disk io
+        :param path: 图片保存路径
+        :return: 图片是否生成成功
+        '''
+        # 没有获取到数据则直接返回失败
+        if len(y[0]) == 0 or len(y[1]) == 0 or len(y[2]) == 0 or len(x) == 0:
+            return False
 
+        if len(x) != len(y[0]):
+            if len(x) > len(y[0]):
+                x = x[:len(y[0])]
+            else:
+                y[0] = y[0][:len(x)]
+
+        if len(x) != len(y[1]):
+            if len(x) > len(y[1]):
+                x = x[:len(y[1])]
+            else:
+                y[1] = y[1][:len(x)]
+
+        if len(x) != len(y[2]):
+            if len(x) > len(y[2]):
+                x = x[:len(y[2])]
+            else:
+                y[2] = y[2][:len(x)]
+
+        # 设置 X 轴刻度, 数据太多 X 轴会显示太密, 抽取 X 轴部分数据作为刻度
+        if len(x) > report.PIC_TICK:
+            temp_x = []
+            interval = len(x) // report.PIC_TICK
+            for index in range(0, len(x), interval):
+                temp_x.append(x[index])
+            temp_x[-1] = x[-1]
+            tick_x = temp_x
+        else:
+            tick_x = x
+
+        # 设置图片大小
+        fig, ax1 = plt.subplots(figsize=(16, 8))
+        # 设置字体
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.title(Report.DISK_PIC_TITLE)
+
+        ax1.plot(x, y[0], label=Report.DISK_WRITE)
+        ax1.plot(x, y[1], label=Report.DISK_READ)
+        ax1.set_xticks(tick_x)
+        ax1.set_xlabel(Report.MEM_PIC_X_LABEL)
+        ax1.set_ylabel(Report.DISK_PIC_LY_LABEL)
+
+        # 第二个 Y 轴
+        # ax2 = plt.twinx()
+        # ax2.plot(x, y[2], label=Report.DISK_IO)
+        # ax2.set_ylabel(Report.DISK_PIC_RY_LABEL)
+        # ax2.set_xticks(tick_x)
+        # 图例位置自适应
+        # ax2.legend(loc='upper left')
+        ax1.legend(loc='upper right')
+        plt.savefig(path + os.path.sep + Report.DISK_PIC_NAME)
+        return True
 
 if __name__ == '__main__':
     nmon_list = []
@@ -327,6 +403,7 @@ if __name__ == '__main__':
     report = Report()
     report._create_cpu_char(nmon_list[0].time, nmon_list[0].cpus, ".")
     report._create_mem_char(nmon_list[0].time, nmon_list[0].mems, ".")
+    report._create_disk_char(nmon_list[0].time, nmon_list[0].disks, ".")
 
     # report.get_report(loadrunner_list, nmon_list)
 
