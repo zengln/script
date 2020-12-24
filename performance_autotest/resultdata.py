@@ -230,6 +230,7 @@ class NmonAnalyse(FileAnalyse):
         disks_read = []
         disks_write = []
         disks_io = []
+        disks_busy = []
         for line in lines:
             # NMON 文件中存在监控数据未与其他行分隔开
             # 判断当前数据行是否以 "DISK" 开头, 如果不是则分割
@@ -272,18 +273,21 @@ class NmonAnalyse(FileAnalyse):
                 diskio_sum += disk_io_line_sum
                 # 计算总行数
                 diskio_num += 1
+
+                # 添加到监控数据中
+                disks_io.append(disk_io_line_sum)
             elif "DISKBUSY,T" in line:
                 # 获取 busi 每列初始值
                     # 计算 busi 每列均值
                     for disk_busy_line_index in range(2, len(disks)):
                         if diskbusy_num == 0:
                             diskbusy_avg.append(float(disks[disk_busy_line_index]))
-                            disks_io.append([float(disks[disk_busy_line_index])])
+                            disks_busy.append([float(disks[disk_busy_line_index])])
                         else:
                             diskbusy_avg[disk_busy_line_index - 2] = (float(
                                 diskbusy_avg[disk_busy_line_index - 2]) * diskbusy_num + float(
                                 disks[disk_busy_line_index])) / (diskbusy_num + 1)
-                        disks_io[disk_busy_line_index - 2].append(float(disks[disk_busy_line_index]))
+                        disks_busy[disk_busy_line_index - 2].append(float(disks[disk_busy_line_index]))
 
                     diskbusy_num += 1
 
@@ -296,14 +300,17 @@ class NmonAnalyse(FileAnalyse):
 
         self.disks.append(disks_write)
         self.disks.append(disks_read)
-        self.disks.append(disks_io[diskbusy_max_index])
+        self.disks.append(disks_io)
+        self.disks.append(disks_busy[diskbusy_max_index])
 
         logger.debug("DISK WRITE NMON DATA:")
         logger.debug(disks_write)
         logger.debug("DISK READ NMON DATA:")
         logger.debug(disks_read)
+        logger.debug("DISK IO NMON DATA:")
+        logger.debug(disks_io)
         logger.debug("DISK BUSY NMOM DATA:")
-        logger.debug(disks_io[diskbusy_max_index])
+        logger.debug(disks_busy[diskbusy_max_index])
 
 
         self.disk = (round(diskread_sum / diskread_num, 2), round(diskwrite_sum / diskwrite_num, 2),
