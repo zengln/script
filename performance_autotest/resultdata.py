@@ -159,7 +159,7 @@ class NmonAnalyse(FileAnalyse):
         # 虚拟内存总负载
         mem_virtual_sum = float(0)
         # 总内存监控数据
-        mems_total = []
+        mems_use = []
         # 空闲内存监控数据
         mems_free = []
 
@@ -172,25 +172,32 @@ class NmonAnalyse(FileAnalyse):
 
             mems = line.split(",")
             if len(mems) == 17:
-                # (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
-                mem_sum += ((float(mems[2]) - float(mems[6]) - float(mems[11]) - float(mems[14])) / float(
-                    mems[2]) * 100)
-                mems_total.append(float(mems[2]))
-                mems_free.append(float(mems[6]))
+                # mem_use 实际使用内存 计算方式 (Memtotal - Memfree - cached - buffers)/Memtotal  * 100
+                mem_use = (float(mems[2]) - float(mems[6]) - float(mems[11]) - float(mems[14])) / float(mems[2]) * 100
+                mem_sum += mem_use
+
+                mems_use.append(mem_use)
+                mems_free.append(float(mems[6])/float(mems[2]) * 100)
+
             elif len(mems) == 8:
-                # (Real total - Real free)/Real total * 100
-                mem_sum += ((float(mems[6]) - float(mems[4])) / float(mems[6]) * 100)
+                #  mem_use 实际使用内存 计算方式 (Real total - Real free)/Real total * 100
+                mem_use = (float(mems[6]) - float(mems[4])) / float(mems[6]) * 100
+                mem_sum += mem_use
+
+                # mem_virtual 包含虚拟内存使用时 计算方式
                 # (Real total - Real free + Virtual total - Virtual free) /(Real total + Virtual total) * 100
                 mem_virtual_sum += ((float(mems[6]) - float(mems[4]) + float(mems[7]) - float(mems[5])) / (
                             float(mems[6]) + float(mems[7])) * 100)
-                mems_total.append(float(mems[6]))
-                mems_free.append(float(mems[4]))
+
+                mems_use.append(mem_use)
+                mems_free.append(float(mems[4]) / float(mems[6]) * 100)
+
             else:
                 logger.error("解析服务器ip为 %s 的 %s 监控文件的 MEM 数据出现异常,出现异常行数据为：%s" % (self.ip, self.name, line))
                 error_num += 1
 
         self.mem = (round(mem_sum / (len(lines) - error_num), 2), round(mem_virtual_sum / (len(lines) - error_num), 2))
-        self.mems.append(mems_total)
+        self.mems.append(mems_use)
         self.mems.append(mems_free)
         logger.debug("mem: 不含虚拟内存的使用率 %.2f%%, 包含虚拟内存的使用率 %.2f%%" % (self.mem[0], self.mem[1]))
         logger.debug("总内存监控数据:")
