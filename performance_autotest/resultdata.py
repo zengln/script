@@ -37,13 +37,13 @@ class NmonAnalyse(FileAnalyse):
         self.disk = float(0)
         # 网络负载
         self.net = float(0)
-        # cpu 负载数据, 记录cpu_total的数据
+        # cpu 负载数据, [cpu_total]
         self.cpus = []
-        # 内存负载数
+        # 内存负载数 [mem_use,mem_free]
         self.mems = []
         # 网络负载数据
         self.nets = []
-        # 磁盘负载数据
+        # 磁盘负载数据 [disk_write,disk_read,disk_io]
         self.disks = []
         # 监控时间,生成报告图表中的X轴使用数据
         self.time = []
@@ -293,7 +293,10 @@ class NmonAnalyse(FileAnalyse):
                 diskbusy_max = disk_busy
 
         diskbusy_max_index = diskbusy_avg.index(diskbusy_max)
-        self.disks = disks_io[diskbusy_max_index]
+
+        self.disks.append(disks_write)
+        self.disks.append(disks_read)
+        self.disks.append(disks_io[diskbusy_max_index])
 
         logger.debug("DISK WRITE NMON DATA:")
         logger.debug(disks_write)
@@ -301,6 +304,7 @@ class NmonAnalyse(FileAnalyse):
         logger.debug(disks_read)
         logger.debug("DISK BUSY NMOM DATA:")
         logger.debug(disks_io[diskbusy_max_index])
+
 
         self.disk = (round(diskread_sum / diskread_num, 2), round(diskwrite_sum / diskwrite_num, 2),
                      round(diskio_sum / diskio_num, 2), round(diskbusy_max, 2))
