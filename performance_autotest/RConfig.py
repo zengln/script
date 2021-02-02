@@ -18,7 +18,8 @@ class Config(object):
 
         return cls.__instance
 
-    def __init__(self):
+
+    def reload_all_value(self):
         self.conf = configparser.ConfigParser()
         config_path = os.path.dirname(__file__)
         if os.path.exists(config_path+"\\conf\\config.ini"):
@@ -26,7 +27,6 @@ class Config(object):
         else:
             raise CustomError("配置文件不存在")
 
-    def reload_all_value(self):
         sections = self.conf.sections()
         for section in sections:
             items = self.conf.items(section)
