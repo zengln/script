@@ -33,6 +33,8 @@ class Config(object):
             for item in items:
                 if not self.set_default_value(item):
                     self.__setattr__(item[0], item[1].strip())
+                # 替换路径
+                self.replace_path(item)
 
     @classmethod
     def get_instance(cls):
@@ -61,3 +63,18 @@ class Config(object):
             self.__setattr__(section_item[0], "")
 
         return True
+
+    def replace_path(self, section_item):
+        """
+        替换 widnows 上路径分隔符
+        例如 C:/test/index.txt
+        替换成 c:\test\index.txt
+        :param section_item:
+        :return:
+        """
+        if section_item[0] == "download_local_path" and "/" in section_item[1]:
+            section_item[1].replace('/', '\\')
+        elif section_item[0] == "jmeter_script_dir" and "/" in section_item[1]:
+            section_item[1].replace('/', '\\')
+        elif section_item[0] == "report_path" and "/" in section_item[1]:
+            section_item[1].replace('/', '\\')
