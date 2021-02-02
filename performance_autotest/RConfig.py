@@ -40,7 +40,8 @@ class Config(object):
     def get_instance(cls):
         if not cls.__instance:
             cls.__instance = Config()
-            cls.__instance.reload_all_value()
+
+        cls.__instance.reload_all_value()
         return cls.__instance
 
     def set_default_value(self, section_item):
