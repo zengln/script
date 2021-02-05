@@ -18,12 +18,17 @@ class Config(object):
 
         return cls.__instance
 
-
-    def reload_all_value(self):
+    def reload_all_value(self, config_file):
         self.conf = configparser.ConfigParser()
-        config_path = os.path.dirname(__file__)
-        if os.path.exists(config_path+"\\conf\\config.ini"):
-            self.conf.read(config_path+"\\conf\\config.ini", encoding="GBK")
+
+        # 「优化」自行传入配置文件,
+        if not config_file:
+            # 没传入读取默认配置
+            config_path = os.path.dirname(__file__)
+            config_file = config_path + "\\conf\\config.ini"
+
+        if os.path.exists(config_file):
+            self.conf.read(config_file)
         else:
             raise CustomError("配置文件不存在")
 
@@ -34,19 +39,20 @@ class Config(object):
                 if not self.set_default_value(item):
                     self.__setattr__(item[0], item[1].strip())
                 # 替换路径
-                self.replace_path(item)
+                if item[0] in ['download_local_path', 'jmeter_script_dir', 'report_path']:
+                    self.replace_path(item[1])
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls, config_file=""):
         if not cls.__instance:
             cls.__instance = Config()
 
-        cls.__instance.reload_all_value()
+        cls.__instance.reload_all_value(config_file)
         return cls.__instance
 
     def set_default_value(self, section_item):
-        if not section_item[1] == "":
-            return False
+        if section_item[1]:
+            return
 
         if section_item[0] == "nmon_path":
             self.__setattr__(section_item[0], ".")
@@ -65,17 +71,14 @@ class Config(object):
 
         return True
 
-    def replace_path(self, section_item):
+    def replace_path(self, replace_path):
         """
         替换 widnows 上路径分隔符
         例如 C:/test/index.txt
         替换成 c:\test\index.txt
-        :param section_item:
+        :param value:
         :return:
         """
-        if section_item[0] == "download_local_path" and "/" in section_item[1]:
-            section_item[1].replace('/', '\\')
-        elif section_item[0] == "jmeter_script_dir" and "/" in section_item[1]:
-            section_item[1].replace('/', '\\')
-        elif section_item[0] == "report_path" and "/" in section_item[1]:
-            section_item[1].replace('/', '\\')
+        if "/" in replace_path:
+            replace_path.replace('/', '\\')
+        return replace_path
