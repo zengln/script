@@ -7,16 +7,24 @@ import requests
 import json
 import Jmeter2Blade.util.util as util
 
+from Jmeter2Blade.util.log import logger
+
 
 class VariableData:
 
-    def __init__(self, dataNode, data, vid="", vName=""):
+    def __init__(self, dataNode, data=[], vid="", vName=""):
         self.dataNode = dataNode
         self.data = data
         self.api_token = util.TOKEN
         self.account = util.account
         self.vid = vid
         self.vName = vName
+
+    def set_data(self, data):
+        if not isinstance(data, dict):
+            return False
+
+        self.data.append(data)
 
 
 class importOfflineCase:
@@ -41,11 +49,11 @@ class PostBlade:
     # blade接口-添加自定义变量
     def dealVariableData(self, data):
         if not isinstance(data, VariableData):
-            return
+            return "data 需要为VariableData实例"
         resp = requests.post(util.dealVariableData_url, data=json.dumps(data.__dict__), headers=self.headers)
         content = resp.content.decode("utf-8")
         resp_content_json = json.loads(content)
-        print(resp_content_json)
+        logger.info(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return
         else:
@@ -55,11 +63,11 @@ class PostBlade:
     # blade 接口-添加测试用例
     def importOfflineCase(self, data):
         if not isinstance(data, importOfflineCase):
-            return
+            return "data需要为importOfflineCase实例"
         resp = requests.post(util.importOfflineCase_url, data=json.dumps(data.__dict__), headers=self.headers)
         content = resp.content.decode("utf-8")
         resp_content_json = json.loads(content)
-        print(resp_content_json)
+        logger.info(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return
         else:
@@ -68,7 +76,7 @@ class PostBlade:
 
 
 if __name__ == "__main__":
-    vd = VariableData("/自定义变量", [{"varName": "varc_test", "varContent": 3, "variableRemark":"python"}])
+    vd = VariableData("自定义变量", [{"varName": "varc_test", "varContent": 3, "variableRemark":"python"}])
     pb = PostBlade()
     pb.dealVariableData(vd)
 
