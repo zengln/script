@@ -38,6 +38,17 @@ class importOfflineCase:
         self.vName = vName
 
 
+class dealScriptData:
+
+    def __init__(self, dataNode, data, vid="", vName=""):
+        self.dataNode = dataNode
+        self.data = data
+        self.vid = vid
+        self.vName = vName
+        self.account = util.account
+        self.api_token = util.TOKEN
+
+
 class PostBlade:
     SUCCESS = 'success'
 
