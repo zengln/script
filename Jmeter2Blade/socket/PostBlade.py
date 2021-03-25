@@ -30,14 +30,44 @@ class VariableData:
 
 
 class importOfflineCase:
-
-    def __init__(self, nodePath, data, vid="", vName=""):
+    """
+    用例数据导入接口
+    """
+    def __init__(self, nodePath, data=[], vid="", vName=""):
         self.nodePath = nodePath
-        self.data = data
         self.api_token = util.TOKEN
         self.account = util.account
         self.vid = vid
         self.vName = vName
+        self.data = data
+
+    # 添加测试用例
+    def add_case(self, casename, step, **kwargs):
+        data = dict()
+        # 用例类型 1-手工, 2-自动化
+        data["caseType"] = "1"
+        # 用例状态。0-待设计；1-已启用；2-设计中；3-已废弃
+        data["caseState"] = "1"
+        # 优先级 P1(高)、P2(中)、P3(低)、P4(极低)
+        data["casePrior"] = "P2"
+        # 正反用例类型 0-正，1-反
+        data["caseSideType"] = "0"
+        # 0:功能;1:性能;2:文档;3:安全;4:兼容性;5:可靠性;6:用户体验;7:安装部署;
+        data["caseDetailType"] = "0"
+        # 负责人
+        data["caseHeader"] = util.account
+        # 审核状态 0.待审核,1审核通过,2审核不通过,3免审核4未提交审核
+        data["caseReviewStatus"] = "3"
+        # 标签
+        data["caseKeyword"] = "Jmeter转Blade用例"
+        data["caseName"] = casename
+        data["step"] = step
+
+        if kwargs:
+            for key, value in kwargs.items():
+                data[key] = value
+
+        self.data.append(data)
 
 
 class dealScriptData:
