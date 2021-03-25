@@ -152,9 +152,9 @@ class PostBlade:
         resp_content_json = json.loads(content)
         logger.info(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
-            return
+            return None, resp_content_json['result_list'][0]['ID']
         else:
-            return resp_content_json['sub_msg']
+            return resp_content_json['sub_msg'],resp_content_json['result_list'][0]['ID']
 
 
 if __name__ == "__main__":
