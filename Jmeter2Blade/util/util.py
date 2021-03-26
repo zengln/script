@@ -8,6 +8,7 @@
 
 后续考虑是否放入配置文件, 工具类不对外开放
 '''
+import random, string
 
 TOKEN = ""
 account = ""
@@ -22,7 +23,7 @@ def random_uuid(length:int) ->str:
     :param length: 生成随机字符串的长度
     :return: 随机字符串
     """
-    import random, string
+
     return ''.join(random.choice(string.digits + string.ascii_letters) for _ in range(length))
 
 
