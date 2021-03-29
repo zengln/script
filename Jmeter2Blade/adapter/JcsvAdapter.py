@@ -74,7 +74,6 @@ def deal_arguments(root, node_name):
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content):
     # 报文提取
-    steps = []
     step = dict()
     step_json = dict()
     data_content = dict()
@@ -111,14 +110,14 @@ def deal_HTTPSampler(root, step_name, script_content):
             data_content["content"] = ""
 
     logger.info(step)
-    steps.append(step)
-    return steps
+    return step
 
 
 # 线程组组件
 def deal_threadgroup(root, name):
     logger.info(name)
     sub_elements = root.get_sub_elements()
+    step = []
     for sub_element in sub_elements:
         if sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
@@ -127,7 +126,7 @@ def deal_threadgroup(root, name):
             ds.set_data_with_default(root.get("testname"), "iibs_config", path, root.get("testname"))
             _, script_id = post_blade.dealScriptData(ds)
             # 再添加用例数据
-            step = deal_HTTPSampler(sub_element, "步骤1", script_id)
+            step.append(deal_HTTPSampler(sub_element, "步骤1", script_id))
             # request_body = sub_element.element.find(".//stringProp[@name='Argument.value']").text
             ioc = importOfflineCase(name)
             ioc.add_case("iibs_测试用例名称", step)
