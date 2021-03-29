@@ -6,7 +6,7 @@
 import os
 import xml.etree.ElementTree as ET
 
-from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData
+from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase
 from Jmeter2Blade.util.log import logger
 from Jmeter2Blade.util.JmeterElement import JmeterElement
 from Jmeter2Blade.util.util import random_uuid
@@ -74,14 +74,19 @@ def deal_arguments(root, node_name):
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content):
     # 报文提取
+    steps = []
     step = dict()
+    step_json = dict()
+    data_content = dict()
     step["stepName"] = step_name
-    step["stepDes"] = root.get("testname")
+    step["stepJson"] = step_json
+    step_json["dataContent"] = data_content
+    step_json["stepDes"] = root.get("testname")
     # 0—前置，1-后置，2-空
-    step["precisionTest"] = "1"
+    step_json["precisionTest"] = "1"
     pre_sqls = list()
-    step["preSqlContent"] = pre_sqls
-    step["scriptContent"] = script_content
+    step_json["preSqlContent"] = pre_sqls
+    step_json["scriptContent"] = script_content
 
     request_body = root.element.find(".//stringProp[@name='Argument.value']").text
     sub_elements = root.get_sub_elements()
@@ -92,7 +97,7 @@ def deal_HTTPSampler(root, step_name, script_content):
             logger.info(sql)
             pre_sql = {
                     "id": "",
-                    "type": "",
+                    "type": "2",
                     "content": "%s" % sql
                     }
             pre_sqls.append(pre_sql)
@@ -100,7 +105,14 @@ def deal_HTTPSampler(root, step_name, script_content):
         # 验证提取
         elif sub_element.get("testname") == "响应断言":
             match_string = sub_element.element.find(".//collectionProp[@name='Asserion.test_strings']")[0].text
-            step[""] = Josn2Blade(eval(request_body), [], 0, match_string)
+            data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, match_string)
+            data_content["id"] = ""
+            data_content["dataChoseRow"] = ""
+            data_content["content"] = ""
+
+    logger.info(step)
+    steps.append(step)
+    return steps
 
 
 # 线程组组件
@@ -111,14 +123,15 @@ def deal_threadgroup(root, name):
         if sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
             # 先添加脚本
-            # ds = dealScriptData(name)
-            # ds.set_data_with_default(root.get("testname"), "iibs_config", path, root.get("testname"))
-            # _, script_id = post_blade.dealScriptData(ds)
+            ds = dealScriptData(name)
+            ds.set_data_with_default(root.get("testname"), "iibs_config", path, root.get("testname"))
+            _, script_id = post_blade.dealScriptData(ds)
             # 再添加用例数据
-            script_id = "1"
-            deal_HTTPSampler(sub_element, "步骤1", script_id)
+            step = deal_HTTPSampler(sub_element, "步骤1", script_id)
             # request_body = sub_element.element.find(".//stringProp[@name='Argument.value']").text
-
+            ioc = importOfflineCase(name)
+            ioc.add_case("iibs_测试用例名称", step)
+            logger.info(post_blade.importOfflineCase(ioc))
 
 
 # 定义blade根路径
