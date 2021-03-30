@@ -14,13 +14,16 @@ class VariableData:
     """
     变量数据处理接口
     """
-    def __init__(self, dataNode, data=[], vid="", vName=""):
+    def __init__(self, dataNode, data=None, vid="", vName=""):
         self.dataNode = dataNode
-        self.data = data
         self.api_token = util.TOKEN
         self.account = util.account
         self.vid = vid
         self.vName = vName
+
+        if not data:
+            data = []
+        self.data = data
 
     def set_data(self, data):
         if not isinstance(data, dict):
@@ -33,12 +36,15 @@ class importOfflineCase:
     """
     用例数据导入接口
     """
-    def __init__(self, nodePath, data=[], vid="", vName=""):
+    def __init__(self, nodePath, data=None, vid="", vName=""):
         self.nodePath = nodePath
         self.api_token = util.TOKEN
         self.account = util.account
         self.vid = vid
         self.vName = vName
+
+        if not data:
+            data = []
         self.data = data
 
     # 添加测试用例
@@ -74,13 +80,16 @@ class dealScriptData:
     """
     脚本处理接口, 可以自行传入数据, 或者使用默认模版(后续可能调整)
     """
-    def __init__(self, data_node, data=[], vid="", vName=""):
+    def __init__(self, data_node, data=None, vid="", vName=""):
         self.dataNode = data_node
-        self.data = data
         self.vid = vid
         self.vName = vName
         self.account = util.account
         self.api_token = util.TOKEN
+
+        if not data:
+            data = []
+        self.data = data
 
     def set_data(self, data):
         if not isinstance(data, dict):
