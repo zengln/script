@@ -5,6 +5,7 @@
 
 import os
 import xml.etree.ElementTree as ET
+import json
 
 from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase
 from Jmeter2Blade.util.log import logger
@@ -54,10 +55,39 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     return result
 
 
+# CSV 文件处理
+def deal_csv_file(filename):
+    # 给的脚本里文件绝对路径与本机不同
+    # 所有只需要脚本名称, 直接从项目的路径下取文件
+    csv_file = open(r"../file/"+filename, encoding="utf8")
+    # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
+    message_stop_index = 0
+    titles = csv_file.readline().split(",")
+    for title in titles:
+        if title == "yq_respCode":
+            message_stop_index = titles.index(title)
+            break
+
+    messages = []
+    for line in csv_file.readlines():
+        temp = dict()
+        message = dict()
+        data = line.split(",")[0:message_stop_index]
+        logger.info(data)
+        for i in range(1, len(data)):
+            temp[titles[i]] = data[i]
+
+        message["casename"] = data[0]
+        message["body"] = json.dumps(temp)
+        messages.append(message)
+
+    return messages
+
+
 # 自定义变量组件处理
 def deal_arguments(root, node_name):
     variable_date = VariableData(node_name)
-    for child in root[0]:
+    for child in root.element[0]:
         data = {}
         for sub_child in child:
             if sub_child.attrib['name'] == "Argument.name":
@@ -72,7 +102,7 @@ def deal_arguments(root, node_name):
 
 
 # HTTP 请求组件处理
-def deal_HTTPSampler(root, step_name, script_content):
+def deal_HTTPSampler(root, step_name, script_content, request_body=""):
     # 报文提取
     step = dict()
     step_json = dict()
@@ -86,8 +116,10 @@ def deal_HTTPSampler(root, step_name, script_content):
     pre_sqls = list()
     step_json["preSqlContent"] = pre_sqls
     step_json["scriptContent"] = script_content
+    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容
+    if not request_body:
+        request_body = root.element.find(".//stringProp[@name='Argument.value']").text
 
-    request_body = root.element.find(".//stringProp[@name='Argument.value']").text
     sub_elements = root.get_sub_elements()
     for sub_element in sub_elements:
         # 前置提取
@@ -114,27 +146,61 @@ def deal_HTTPSampler(root, step_name, script_content):
 
 
 # 线程组组件
-def deal_threadgroup(root, name):
-    logger.info(name)
+def deal_threadgroup(root, node_path):
+    # csv 标识
+    csv_flag = False
+    # 线程组名称, 作为用例节点的父级目录名称
+    thread_group_name = root.get("testname")
+    logger.info(node_path)
     sub_elements = root.get_sub_elements()
-    step = []
+
+    # 如果是csv格式的,包含了控制器,特殊处理
+    if sub_elements[0].tag == "TransactionController":
+        sub_elements = sub_elements[0].get_sub_elements()
+        csv_flag = True
+
+    messages = []
     for sub_element in sub_elements:
-        if sub_element.tag == "HTTPSamplerProxy":
+        if csv_flag:
+            # csv 处理, 获取所有报文
+            if sub_element.tag == "Arguments":
+                file_path = sub_element.element.find(".//stringProp[@name='Argument.value']").text
+                logger.info(file_path)
+                filename = file_path.split("/")[-1]
+                logger.info(filename)
+                messages = deal_csv_file(filename)
+                logger.info(messages)
+            elif sub_element.tag == "HTTPSamplerProxy":
+                path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
+                # 先添加脚本
+                ds = dealScriptData(node_path)
+                ds.set_data_with_default(thread_group_name, "iibs_config", path, thread_group_name)
+                _, script_id = post_blade.dealScriptData(ds)
+                # 再添加数据
+                request_body_half = sub_element.element.find(".//stringProp[@name='Argument.value']").text
+                ioc = importOfflineCase(node_path + thread_group_name)
+                for message in messages:
+                    requst_body = request_body_half.replace("${req_body}", message["body"])
+                    step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body)
+                    ioc.add_case(message["casename"], [step])
+
+                logger.info(post_blade.importOfflineCase(ioc))
+
+        elif sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
             # 先添加脚本
-            ds = dealScriptData(name)
-            ds.set_data_with_default(root.get("testname"), "iibs_config", path, root.get("testname"))
+            ds = dealScriptData(node_path)
+            ds.set_data_with_default(thread_group_name, "iibs_config", path, thread_group_name)
             _, script_id = post_blade.dealScriptData(ds)
             # 再添加用例数据
-            step.append(deal_HTTPSampler(sub_element, "步骤1", script_id))
-            # request_body = sub_element.element.find(".//stringProp[@name='Argument.value']").text
-            ioc = importOfflineCase(name)
-            ioc.add_case("iibs_测试用例名称", step)
+            step = deal_HTTPSampler(sub_element, "步骤-1", script_id)
+            ioc = importOfflineCase(node_path + thread_group_name)
+            ioc.add_case(thread_group_name, [step])
             logger.info(post_blade.importOfflineCase(ioc))
 
 
 # 定义blade根路径
-root_name = "jmeter转blade测试"
+balde_root_name = "jmeter转blade测试"
 # 读取xml文件
 tree = ET.parse('movie.jmx')
 # 获取xml根节点
@@ -147,6 +213,8 @@ root_node_name = test_plan.get("testname")
 # 获取jmx文件根节点
 jmx_root = root[0][1]
 
+base_name = balde_root_name + os.path.altsep + root_node_name + os.path.altsep
+
 companents = JmeterElement(test_plan, jmx_root).get_sub_elements()
 
 for companent in companents:
@@ -154,12 +222,11 @@ for companent in companents:
         # 自定义变量组件处理
         if companent.tag == "Arguments":
             # jmeter转blade测试/iibs/自定义变量
-            name = root_name + os.path.altsep + root_node_name + os.path.altsep + companent.get("testname")
+            name = base_name + companent.get("testname")
             logger.info(name)
-            # deal_arguments(child, node_name=name)
+            deal_arguments(companent, node_name=name)
         elif companent.tag == "ThreadGroup":
             logger.info(companent.get("testname"))
-            base_name = root_name + os.path.altsep + root_node_name
             deal_threadgroup(companent, base_name)
 
 
