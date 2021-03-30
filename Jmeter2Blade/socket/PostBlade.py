@@ -163,7 +163,7 @@ class PostBlade:
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return None, resp_content_json['result_list'][0]['ID']
         else:
-            return resp_content_json['sub_msg'],resp_content_json['result_list'][0]['ID']
+            return resp_content_json['sub_msg'], resp_content_json['result_list'][0]['ID']
 
 
 if __name__ == "__main__":
