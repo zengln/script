@@ -12,7 +12,7 @@ from Jmeter2Blade.util.log import logger
 from Jmeter2Blade.util.JmeterElement import JmeterElement
 from Jmeter2Blade.util.util import random_uuid
 
-post_blade = PostBlade()
+
 
 
 def Josn2Blade(message,  result, num=0, check_Message=""):
@@ -85,20 +85,20 @@ def deal_csv_file(filename):
 
 
 # 自定义变量组件处理
-def deal_arguments(root, node_name):
+def deal_arguments(root, node_name, arguments_local=None):
     variable_date = VariableData(node_name)
     for child in root.element[0]:
-        data = {}
-        for sub_child in child:
-            if sub_child.attrib['name'] == "Argument.name":
-                data["varName"] = sub_child.text
-            elif sub_child.attrib['name'] == "Argument.value":
-                data["varContent"] = sub_child.text
-            elif sub_child.attrib['name'] == "Argument.desc":
-                data["variableRemark"] = sub_child.text
+        data = dict()
+        data["varName"] = child.find(".//stringProp[@name='Argument.name']")
+        data["varContent"] = child.find(".//stringProp[@name='Argument.value']")
+        data["variableRemark"] = child.find(".//stringProp[@name='Argument.desc']")
+
+        # 本地化处理
+        arguments_local[data["varName"]] = data["varContent"]
         variable_date.set_data(data)
 
-    logger.info(post_blade.dealVariableData(variable_date))
+    resp = post_blade.dealVariableData(variable_date)
+    logger.info(resp)
 
 
 # HTTP 请求组件处理
@@ -184,7 +184,8 @@ def deal_threadgroup(root, node_path):
                     step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body)
                     ioc.add_case(message["casename"], [step])
 
-                logger.info(post_blade.importOfflineCase(ioc))
+                resp = post_blade.importOfflineCase(ioc)
+                logger.info(resp)
 
         elif sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
@@ -196,7 +197,8 @@ def deal_threadgroup(root, node_path):
             step = deal_HTTPSampler(sub_element, "步骤-1", script_id)
             ioc = importOfflineCase(node_path + thread_group_name)
             ioc.add_case(thread_group_name, [step])
-            logger.info(post_blade.importOfflineCase(ioc))
+            resp = post_blade.importOfflineCase(ioc)
+            logger.info(resp)
 
 
 # 定义blade根路径
@@ -205,7 +207,6 @@ balde_root_name = "jmeter转blade测试"
 tree = ET.parse('movie.jmx')
 # 获取xml根节点
 root = tree.getroot()
-
 # 找到TestPlan组件, 获取blade二级路径名
 test_plan = root[0][0]
 logger.info(test_plan)
@@ -214,8 +215,11 @@ root_node_name = test_plan.get("testname")
 jmx_root = root[0][1]
 
 base_name = balde_root_name + os.path.altsep + root_node_name + os.path.altsep
-
 companents = JmeterElement(test_plan, jmx_root).get_sub_elements()
+post_blade = PostBlade()
+
+# 本地保存用户定义变量, 在其他组件中到变量直接替换数据
+arguments_local = dict()
 
 for companent in companents:
     if companent.isEnabled():
@@ -224,7 +228,7 @@ for companent in companents:
             # jmeter转blade测试/iibs/自定义变量
             name = base_name + companent.get("testname")
             logger.info(name)
-            deal_arguments(companent, node_name=name)
+            deal_arguments(companent, name, arguments_local)
         elif companent.tag == "ThreadGroup":
             logger.info(companent.get("testname"))
             deal_threadgroup(companent, base_name)
