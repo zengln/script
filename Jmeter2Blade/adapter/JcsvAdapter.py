@@ -6,13 +6,12 @@
 import os
 import xml.etree.ElementTree as ET
 import json
+import re
 
 from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase
 from Jmeter2Blade.util.log import logger
 from Jmeter2Blade.util.JmeterElement import JmeterElement
 from Jmeter2Blade.util.util import random_uuid
-
-
 
 
 def Josn2Blade(message,  result, num=0, check_Message=""):
@@ -89,16 +88,27 @@ def deal_arguments(root, node_name, arguments_local=None):
     variable_date = VariableData(node_name)
     for child in root.element[0]:
         data = dict()
-        data["varName"] = child.find(".//stringProp[@name='Argument.name']")
-        data["varContent"] = child.find(".//stringProp[@name='Argument.value']")
-        data["variableRemark"] = child.find(".//stringProp[@name='Argument.desc']")
+
+        var_name = child.find(".//stringProp[@name='Argument.name']")
+        if var_name is not None:
+            data["varName"] = var_name.text
+
+        var_content = child.find(".//stringProp[@name='Argument.value']")
+        if var_content is not None:
+            data["varContent"] = var_content.text
+
+        variable_remark = child.find(".//stringProp[@name='Argument.desc']")
+        if variable_remark is not None:
+            data["variableRemark"] = variable_remark.text
 
         # 本地化处理
-        arguments_local[data["varName"]] = data["varContent"]
+        arguments_local[var_name.text] = var_content.text
         variable_date.set_data(data)
 
     resp = post_blade.dealVariableData(variable_date)
-    logger.info(resp)
+    # logger.info(resp)
+    if resp is not None:
+        logger.error(resp)
 
 
 # HTTP 请求组件处理
@@ -141,7 +151,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body=""):
             data_content["dataChoseRow"] = ""
             data_content["content"] = ""
 
-    logger.info(step)
+    logger.debug(step)
     return step
 
 
@@ -163,19 +173,26 @@ def deal_threadgroup(root, node_path):
     for sub_element in sub_elements:
         if csv_flag:
             # csv 处理, 获取所有报文
-            if sub_element.tag == "Arguments":
-                file_path = sub_element.element.find(".//stringProp[@name='Argument.value']").text
+            # 从 Beanshell 中将读取的csv文件key取出
+            if sub_element.tag == "BeanShellSampler":
+                java_code = sub_element.element.find(".//stringProp[@name='BeanShellSampler.query']").text
+                # 获取csv 路径 key
+                csv_re = re.compile(r'FileInputStream[(]vars.get[(]"(.*?)"[)]', re.S)
+                csv_key = re.findall(csv_re, java_code)[0]
+                file_path = arguments_local[csv_key]
                 logger.info(file_path)
                 filename = file_path.split("/")[-1]
                 logger.info(filename)
                 messages = deal_csv_file(filename)
-                logger.info(messages)
+                logger.debug(messages)
             elif sub_element.tag == "HTTPSamplerProxy":
                 path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
                 # 先添加脚本
                 ds = dealScriptData(node_path)
                 ds.set_data_with_default(thread_group_name, "iibs_config", path, thread_group_name)
-                _, script_id = post_blade.dealScriptData(ds)
+                resp, script_id = post_blade.dealScriptData(ds)
+                if resp is not None:
+                    logger.error(resp)
                 # 再添加数据
                 request_body_half = sub_element.element.find(".//stringProp[@name='Argument.value']").text
                 ioc = importOfflineCase(node_path + thread_group_name)
@@ -185,7 +202,9 @@ def deal_threadgroup(root, node_path):
                     ioc.add_case(message["casename"], [step])
 
                 resp = post_blade.importOfflineCase(ioc)
-                logger.info(resp)
+                # logger.info(resp)
+                if resp is not None:
+                    logger.error(resp)
 
         elif sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
@@ -198,7 +217,9 @@ def deal_threadgroup(root, node_path):
             ioc = importOfflineCase(node_path + thread_group_name)
             ioc.add_case(thread_group_name, [step])
             resp = post_blade.importOfflineCase(ioc)
-            logger.info(resp)
+            # logger.info(resp)
+            if resp is not None:
+                logger.error(resp)
 
 
 # 定义blade根路径
