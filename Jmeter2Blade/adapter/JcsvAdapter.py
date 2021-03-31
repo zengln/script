@@ -113,6 +113,8 @@ def deal_arguments(root, node_name, arguments_local=None):
 
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content, request_body=""):
+    # 响应验证字段
+    match_string = ""
     # 报文提取
     step = dict()
     step_json = dict()
@@ -133,7 +135,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body=""):
     sub_elements = root.get_sub_elements()
     for sub_element in sub_elements:
         # 前置提取
-        if sub_element.get("testname") == "JDBC 预处理程序":
+        if sub_element.tag == "JDBCPreProcessor":
             sql = sub_element.element.find(".//stringProp[@name='query']").text
             logger.info(sql)
             pre_sql = {
@@ -144,12 +146,13 @@ def deal_HTTPSampler(root, step_name, script_content, request_body=""):
             pre_sqls.append(pre_sql)
         # 后置提取
         # 验证提取
-        elif sub_element.get("testname") == "响应断言":
+        elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
             match_string = sub_element.element.find(".//collectionProp[@name='Asserion.test_strings']")[0].text
-            data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, match_string)
-            data_content["id"] = ""
-            data_content["dataChoseRow"] = ""
-            data_content["content"] = ""
+
+    data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, match_string)
+    data_content["id"] = ""
+    data_content["dataChoseRow"] = ""
+    data_content["content"] = ""
 
     logger.debug(step)
     return step
