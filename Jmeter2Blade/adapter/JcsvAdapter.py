@@ -62,11 +62,13 @@ def deal_csv_file(filename):
     messages = [
         {"casename": , 用例名称
           "body": ,    报文内容
+          "case_side_type":, 正反例类型
           "check_message": 验证结果字符串
         },
-        {"casename": ,
-          "body": ,
-          "check_message":
+        {"casename": , 用例名称
+          "body": ,    报文内容
+          "case_side_type":, 正反例类型
+          "check_message": 验证结果字符串
         }
     ]
 
@@ -94,6 +96,11 @@ def deal_csv_file(filename):
             temp[titles[i]] = data[i]
 
         message["casename"] = data[0]
+        # 获取正反用例类型
+        if "正例" in data[0]:
+            message["case_side_type"] = "0"
+        else:
+            message["case_side_type"] = "1"
         message["check_message"] = '"respCode":"' + data[-2] + '","respMsg":"' + data[-1] + ''
         message["body"] = json.dumps(temp)
         messages.append(message)
@@ -220,7 +227,7 @@ def deal_threadgroup(root, node_path):
                 for message in messages:
                     requst_body = request_body_half.replace("${req_body}", message["body"])
                     step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body, message["check_message"])
-                    ioc.add_case(message["casename"], [step])
+                    ioc.add_case(message["casename"], [step], caseSideType=message["case_side_type"])
 
                 resp = post_blade.importOfflineCase(ioc)
                 # logger.info(resp)
