@@ -27,8 +27,8 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     temp["sheet"+str(num)] = []
     result.append(temp)
     dict_num = 0
-    # 0 特殊处理
-    if num == 0:
+    # 传入了验证字段, 则 0 特殊处理
+    if check_Message and num == 0:
         one = [random_uuid(32), "序号", "期望"]
         two = [random_uuid(32), "参数说明", ""]
         three = [random_uuid(32), "", check_Message]
@@ -56,6 +56,23 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
 
 # CSV 文件处理
 def deal_csv_file(filename):
+    '''
+    读取csv文件, 获取报文内容, 用例名称和验证结果
+    返回一个包含所有用例数据的列表, 列表格式如下
+    messages = [
+        {"casename": , 用例名称
+          "body": ,    报文内容
+          "check_message": 验证结果字符串
+        },
+        {"casename": ,
+          "body": ,
+          "check_message":
+        }
+    ]
+
+    :param filename: 待读取的 csv 文件
+    :return: 包含所有用例数据的列表
+    '''
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
     csv_file = open(r"../file/"+filename, encoding="utf8")
@@ -63,7 +80,7 @@ def deal_csv_file(filename):
     message_stop_index = 0
     titles = csv_file.readline().split(",")
     for title in titles:
-        if title == "yq_respCode":
+        if title == "yq_serviceStatus":
             message_stop_index = titles.index(title)
             break
 
@@ -73,10 +90,11 @@ def deal_csv_file(filename):
         message = dict()
         data = line.split(",")[0:message_stop_index]
         logger.info(data)
-        for i in range(1, len(data)):
+        for i in range(1, len(data) - 2):
             temp[titles[i]] = data[i]
 
         message["casename"] = data[0]
+        message["check_message"] = '"respCode":"' + data[-2] + '","respMsg":"' + data[-1] + ''
         message["body"] = json.dumps(temp)
         messages.append(message)
 
@@ -112,9 +130,8 @@ def deal_arguments(root, node_name, arguments_local=None):
 
 
 # HTTP 请求组件处理
-def deal_HTTPSampler(root, step_name, script_content, request_body=""):
-    # 响应验证字段
-    match_string = ""
+def deal_HTTPSampler(root, step_name, script_content, request_body="", check_message=""):
+    check_string = ""
     # 报文提取
     step = dict()
     step_json = dict()
@@ -147,9 +164,10 @@ def deal_HTTPSampler(root, step_name, script_content, request_body=""):
         # 后置提取
         # 验证提取
         elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
-            match_string = sub_element.element.find(".//collectionProp[@name='Asserion.test_strings']")[0].text
+            logger.info(check_message)
+            check_string = check_message
 
-    data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, match_string)
+    data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
     data_content["id"] = ""
     data_content["dataChoseRow"] = ""
     data_content["content"] = ""
@@ -201,7 +219,7 @@ def deal_threadgroup(root, node_path):
                 ioc = importOfflineCase(node_path + thread_group_name)
                 for message in messages:
                     requst_body = request_body_half.replace("${req_body}", message["body"])
-                    step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body)
+                    step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body, message["check_message"])
                     ioc.add_case(message["casename"], [step])
 
                 resp = post_blade.importOfflineCase(ioc)
