@@ -82,8 +82,8 @@ def deal_csv_file(filename):
     message_stop_index = 0
     titles = csv_file.readline().split(",")
     for title in titles:
-        if title == "yq_serviceStatus":
-            message_stop_index = titles.index(title)
+        if title == "yq_respMsg":
+            message_stop_index = titles.index(title) + 1
             break
 
     messages = []
@@ -116,7 +116,8 @@ def deal_arguments(root, node_name, arguments_local=None):
 
         var_name = child.find(".//stringProp[@name='Argument.name']")
         if var_name is not None:
-            data["varName"] = var_name.text
+            # 将本地变量转成blade格式
+            data["varName"] = "varc_" + var_name.text
 
         var_content = child.find(".//stringProp[@name='Argument.value']")
         if var_content is not None:
@@ -156,6 +157,20 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
     if not request_body:
         request_body = root.element.find(".//stringProp[@name='Argument.value']").text
 
+    # request 特殊处理, 将其中使用的变量替换成blade变量
+    argument_re = re.compile(r'\${(.*?)}', re.S)
+    arguments = re.findall(argument_re, request_body)
+    for argument in arguments:
+        # 变量的写法可能是 ${test}, '${test}', "${test}"
+        # 三种都替换
+        jmeter_argument = '"${' + argument + '}"'
+        blade_argument = '"varc_' + argument + '"'
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+        jmeter_argument = "'${' + argument + '}'"
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+        jmeter_argument = '${' + argument + '}'
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+
     sub_elements = root.get_sub_elements()
     for sub_element in sub_elements:
         # 前置提取
@@ -173,7 +188,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
         elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
             logger.debug(check_message)
             check_string = check_message
-
+    logger.debug(request_body)
     data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
     data_content["id"] = ""
     data_content["dataChoseRow"] = ""
@@ -202,8 +217,11 @@ def deal_threadgroup(root, node_path):
         if csv_flag:
             # csv 处理, 获取所有报文
             # 从 Beanshell 中将读取的csv文件key取出
-            if sub_element.tag == "BeanShellSampler":
-                java_code = sub_element.element.find(".//stringProp[@name='BeanShellSampler.query']").text
+            if sub_element.tag in ("BeanShellSampler", "BeanShellPreProcessor"):
+                if sub_element.tag == "BeanShellSampler":
+                    java_code = sub_element.element.find(".//stringProp[@name='BeanShellSampler.query']").text
+                else:
+                    java_code = sub_element.element.find(".//stringProp[@name='script']").text
                 # 获取csv 路径 key
                 csv_re = re.compile(r'FileInputStream[(]vars.get[(]"(.*?)"[)]', re.S)
                 csv_key = re.findall(csv_re, java_code)[0]
@@ -232,13 +250,13 @@ def deal_threadgroup(root, node_path):
                 resp = post_blade.importOfflineCase(ioc)
                 # logger.info(resp)
                 if resp is not None:
-                    logger.error(resp)
+                    logger.error(thread_group_name+resp)
 
         elif sub_element.tag == "HTTPSamplerProxy":
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
             # 先添加脚本
             ds = dealScriptData(node_path)
-            ds.set_data_with_default(thread_group_name, "iibs_config", path, thread_group_name)
+            ds.set_data_with_default(thread_group_name, "iibs_jmeter", path, thread_group_name)
             _, script_id = post_blade.dealScriptData(ds)
             # 再添加用例数据
             step = deal_HTTPSampler(sub_element, "步骤-1", script_id)
