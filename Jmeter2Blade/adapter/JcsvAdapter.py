@@ -101,7 +101,7 @@ def deal_csv_file(filename):
             message["case_side_type"] = "0"
         else:
             message["case_side_type"] = "1"
-        message["check_message"] = '"respCode":"' + data[-2] + '","respMsg":"' + data[-1] + ''
+        message["check_message"] = '"respCode":"' + data[-2] + '","respMsg":"' + data[-1] + '"'
         message["body"] = json.dumps(temp)
         messages.append(message)
 
@@ -171,7 +171,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
         # 后置提取
         # 验证提取
         elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
-            logger.info(check_message)
+            logger.debug(check_message)
             check_string = check_message
 
     data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
