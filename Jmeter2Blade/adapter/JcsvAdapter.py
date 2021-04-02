@@ -77,12 +77,13 @@ def deal_csv_file(filename):
     '''
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
-    csv_file = open(r"../file/"+filename, encoding="utf8")
+    logger.info(filename)
+    csv_file = open(r"../file/"+filename, encoding="gbk")
     # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
     message_stop_index = 0
     titles = csv_file.readline().split(",")
     for title in titles:
-        if title == "yq_respMsg":
+        if title in ("yq_respMsg", "yq_respmsg"):
             message_stop_index = titles.index(title) + 1
             break
 
@@ -149,7 +150,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
     step_json["dataContent"] = data_content
     step_json["stepDes"] = root.get("testname")
     # 0—前置，1-后置，2-空
-    step_json["precisionTest"] = "1"
+    step_json["precisionTest"] = "2"
     pre_sqls = list()
     step_json["preSqlContent"] = pre_sqls
     step_json["scriptContent"] = script_content
@@ -161,6 +162,9 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
     argument_re = re.compile(r'\${(.*?)}', re.S)
     arguments = re.findall(argument_re, request_body)
     for argument in arguments:
+        # 不替换 jmeter 自带变量
+        if argument.startswith("__"):
+            continue
         # 变量的写法可能是 ${test}, '${test}', "${test}"
         # 三种都替换
         jmeter_argument = '"${' + argument + '}"'
@@ -178,6 +182,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
             sql = sub_element.element.find(".//stringProp[@name='query']").text
             logger.info(sql)
             pre_sql = {
+                    "connection": connection,
                     "id": "",
                     "type": "2",
                     "content": "%s" % sql
@@ -200,8 +205,8 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
 
 # 线程组组件
 def deal_threadgroup(root, node_path):
-    # csv 标识
-    csv_flag = False
+    # HTTP 组件
+    http_companents = []
     # 线程组名称, 作为用例节点的父级目录名称
     thread_group_name = root.get("testname")
     logger.info(node_path)
@@ -210,68 +215,85 @@ def deal_threadgroup(root, node_path):
     # 如果是csv格式的,包含了控制器,特殊处理
     if sub_elements[0].tag == "TransactionController":
         sub_elements = sub_elements[0].get_sub_elements()
-        csv_flag = True
 
     messages = []
+    # 获取到所有关键组件
     for sub_element in sub_elements:
-        if csv_flag:
-            # csv 处理, 获取所有报文
-            # 从 Beanshell 中将读取的csv文件key取出
-            if sub_element.tag in ("BeanShellSampler", "BeanShellPreProcessor"):
-                if sub_element.tag == "BeanShellSampler":
-                    java_code = sub_element.element.find(".//stringProp[@name='BeanShellSampler.query']").text
-                else:
-                    java_code = sub_element.element.find(".//stringProp[@name='script']").text
-                # 获取csv 路径 key
-                csv_re = re.compile(r'FileInputStream[(]vars.get[(]"(.*?)"[)]', re.S)
-                csv_key = re.findall(csv_re, java_code)[0]
-                file_path = arguments_local[csv_key]
-                logger.info(file_path)
-                filename = file_path.split("/")[-1]
-                logger.info(filename)
-                messages = deal_csv_file(filename)
-                logger.debug(messages)
-            elif sub_element.tag == "HTTPSamplerProxy":
-                path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
+        # 从 Beanshell 中将读取的csv文件key取出
+        if sub_element.tag in ("BeanShellSampler", "BeanShellPreProcessor") and not messages:
+            if sub_element.tag == "BeanShellSampler":
+                java_code = sub_element.element.find(".//stringProp[@name='BeanShellSampler.query']").text
+            else:
+                java_code = sub_element.element.find(".//stringProp[@name='script']").text
+            # 获取csv 路径 key
+            csv_re = re.compile(r'FileInputStream[(]vars.get[(]"(.*?)"[)]', re.S)
+            csv_key = re.findall(csv_re, java_code)[0]
+            file_path = arguments_local[csv_key]
+            filename = file_path.split("/")[-1]
+            logger.info(thread_group_name + "的 csv 文件名称" + filename)
+            messages = deal_csv_file(filename)
+            logger.info("读取csv文件内容结束")
+            logger.info(messages)
+        elif sub_element.tag == "Arguments":
+            # copp 自定义变量里直接放的文件名, 直接获取报文内容, 无需将变量上送到blade
+            csv_file_path = sub_element.element.find(".//stringProp[@name='Argument.value']").text
+            csv_file_name = csv_file_path.split("/")[-1]
+            logger.info(thread_group_name + "的 csv 文件名称" + csv_file_name)
+            messages = deal_csv_file(csv_file_name)
+            logger.info("读取csv文件内容结束")
+            logger.info(messages)
+        elif sub_element.tag == "HTTPSamplerProxy":
+            # 在这里改成将 HTTP 组件保存下来, 在后面循环遍历 Message, 重复发送
+            http_companents.append(sub_element)
+
+    # 改到这里发HTTP请求， 初始化HTTP请求
+    ioc = importOfflineCase(node_path + thread_group_name)
+    if messages:
+        # 不为空
+        for message in messages:
+            step_num = 0
+            steps = []
+            for http_companent in http_companents:
+                step_num += 1
+                path = http_companent.element.find(".//stringProp[@name='HTTPSampler.path']").text
                 # 先添加脚本
                 ds = dealScriptData(node_path)
-                ds.set_data_with_default(thread_group_name, "iibs_config", path, thread_group_name)
+                ds.set_data_with_default(http_companent.get("testname"), root_url, path, thread_group_name)
                 resp, script_id = post_blade.dealScriptData(ds)
-                if resp is not None:
-                    logger.error(resp)
                 # 再添加数据
-                request_body_half = sub_element.element.find(".//stringProp[@name='Argument.value']").text
-                ioc = importOfflineCase(node_path + thread_group_name)
-                for message in messages:
-                    requst_body = request_body_half.replace("${req_body}", message["body"])
-                    step = deal_HTTPSampler(sub_element, "步骤-1", script_id, requst_body, message["check_message"])
-                    ioc.add_case(message["casename"], [step], caseSideType=message["case_side_type"])
-
-                resp = post_blade.importOfflineCase(ioc)
-                # logger.info(resp)
-                if resp is not None:
-                    logger.error(thread_group_name+resp)
-
-        elif sub_element.tag == "HTTPSamplerProxy":
-            path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
+                request_body_half = http_companent.element.find(".//stringProp[@name='Argument.value']").text
+                requst_body = request_body_half.replace("${req_body}", message["body"])
+                logger.info(requst_body)
+                steps.append(deal_HTTPSampler(http_companent, "步骤-"+str(step_num), script_id, requst_body,
+                                              message["check_message"]))
+            ioc.add_case(message["casename"], steps)
+    else:
+        step_num = 0
+        steps = []
+        for http_companent in http_companents:
+            step_num += 1
+            path = http_companent.element.find(".//stringProp[@name='HTTPSampler.path']").text
             # 先添加脚本
             ds = dealScriptData(node_path)
-            ds.set_data_with_default(thread_group_name, "iibs_jmeter", path, thread_group_name)
-            _, script_id = post_blade.dealScriptData(ds)
-            # 再添加用例数据
-            step = deal_HTTPSampler(sub_element, "步骤-1", script_id)
-            ioc = importOfflineCase(node_path + thread_group_name)
-            ioc.add_case(thread_group_name, [step])
-            resp = post_blade.importOfflineCase(ioc)
-            # logger.info(resp)
-            if resp is not None:
-                logger.error(resp)
+            ds.set_data_with_default(http_companent.get("testname"), root_url, path, thread_group_name)
+            resp, script_id = post_blade.dealScriptData(ds)
+            # 再添加数据
+            steps.append(deal_HTTPSampler(http_companent, "步骤-" + str(step_num), script_id))
+        ioc.add_case(thread_group_name, steps)
 
+    resp = post_blade.importOfflineCase(ioc)
+    # logger.info(resp)
+    if resp is not None:
+        logger.error(thread_group_name + resp)
 
+# 配置数据库连接
+connection = "iibs_copp_mysql"
+# 根URL, 添加脚本时试用
+root_url = "iibs_copp_jmeter"
 # 定义blade根路径
 balde_root_name = "jmeter转blade测试"
 # 读取xml文件
-tree = ET.parse('movie.jmx')
+tree = ET.parse('../jmxfile/iibs_copp.jmx')
 # 获取xml根节点
 root = tree.getroot()
 # 找到TestPlan组件, 获取blade二级路径名
