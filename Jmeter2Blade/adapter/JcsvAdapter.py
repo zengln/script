@@ -138,6 +138,35 @@ def deal_arguments(root, node_name, arguments_local=None):
         logger.error(resp)
 
 
+# JDBC 组件处理
+def deal_JDBCSample(root):
+    sqls = root.element.find(".//stringProp[@name='query']").text
+    logger.info(sqls)
+    step = dict()
+    step_json = dict()
+    step["stepName"] = root.get("testname")
+    step["stepJson"] = step_json
+    # 0—前置，1-后置，2-空
+    step_json["precisionTest"] = "2"
+    step_json["scriptContent"] = ""
+    dataContent = dict()
+    dataContent["dataArrContent"] = list()
+    dataContent["id"] = ""
+    dataContent["dataChoseRow"] = ""
+    dataContent["content"] = ""
+    step_json["dataContent"] = dataContent
+    step_json["stepDes"] = root.get("testname")
+    pre_sqls = list()
+    pre_sql = {
+        "connection": connection,
+        "id": "",
+        "type": "2",
+        "content": "%s" % sqls
+    }
+    pre_sqls.append(pre_sql)
+    step_json["preSqlContent"] = pre_sqls
+    return step
+
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content, request_body="", check_message=""):
     check_string = ""
@@ -207,6 +236,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
 def deal_threadgroup(root, node_path):
     # HTTP 组件
     http_companents = []
+
     # 线程组名称, 作为用例节点的父级目录名称
     thread_group_name = root.get("testname")
     logger.info(node_path)
@@ -216,9 +246,16 @@ def deal_threadgroup(root, node_path):
     if sub_elements[0].tag == "TransactionController":
         sub_elements = sub_elements[0].get_sub_elements()
 
+    # 初始化导入用例请求
+    ioc = importOfflineCase(node_path + thread_group_name)
+
     messages = []
     # 获取到所有关键组件
     for sub_element in sub_elements:
+        # 组件为禁用状态, 不读取
+        if not sub_element.isEnabled():
+            continue
+
         # 从 Beanshell 中将读取的csv文件key取出
         if sub_element.tag in ("BeanShellSampler", "BeanShellPreProcessor") and not messages:
             if sub_element.tag == "BeanShellSampler":
@@ -245,9 +282,12 @@ def deal_threadgroup(root, node_path):
         elif sub_element.tag == "HTTPSamplerProxy":
             # 在这里改成将 HTTP 组件保存下来, 在后面循环遍历 Message, 重复发送
             http_companents.append(sub_element)
+        elif sub_element.tag == "JDBCSampler":
+            # JDBC 组件处理
+            step = deal_JDBCSample(sub_element)
+            ioc.add_case(sub_element.get("testname"), [step])
 
-    # 改到这里发HTTP请求， 初始化HTTP请求
-    ioc = importOfflineCase(node_path + thread_group_name)
+    # 改到这里发HTTP请求
     if messages:
         # 不为空
         for message in messages:
@@ -267,7 +307,7 @@ def deal_threadgroup(root, node_path):
                 steps.append(deal_HTTPSampler(http_companent, "步骤-"+str(step_num), script_id, requst_body,
                                               message["check_message"]))
             ioc.add_case(message["casename"], steps)
-    else:
+    elif http_companents:
         step_num = 0
         steps = []
         for http_companent in http_companents:
@@ -280,6 +320,8 @@ def deal_threadgroup(root, node_path):
             # 再添加数据
             steps.append(deal_HTTPSampler(http_companent, "步骤-" + str(step_num), script_id))
         ioc.add_case(thread_group_name, steps)
+    else:
+        pass
 
     resp = post_blade.importOfflineCase(ioc)
     # logger.info(resp)
