@@ -132,7 +132,14 @@ class importOfflineCase_step:
     def set_checkcontent(self, checkcontent):
         self.step_json["checkContent"] = checkcontent
 
-    def add_checkcontent(self, checkcontent):
+    def add_checkcontent(self, expect, data_source, sql):
+        checkcontent = {
+                        "DBExpect": "SRC->%s" % expect,
+                        "DBCheckSQL": "%s" % sql,
+                        "DBSqlId": "",
+                        "DBSqlName": "鸡蛋",
+                        "checkConnection": data_source
+                    }
         self.step_json["checkContent"].append(checkcontent)
 
     def set_stepexcute(self, stepexcute):
