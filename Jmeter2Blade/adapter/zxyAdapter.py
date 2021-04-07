@@ -54,7 +54,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     return result
 
 # 自定义变量组件处理
-def deal_arguments(root, node_name, arguments_local=None):
+def deal_arguments(root, node_name):
     variable_date = VariableData(node_name)
     for child in root.element[0]:
         data = dict()
@@ -103,7 +103,7 @@ def replace_argument(text):
 
 
 # HTTP 请求组件处理
-def deal_HTTPSampler(root, step_name, script_content, request_body="", check_message=""):
+def deal_HTTPSampler(root, step_name, script_content, request_body=""):
     check_string = ""
     # 报文提取
     step = dict()
@@ -129,6 +129,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
     for sub_element in sub_elements:
         # 前置提取
         if sub_element.tag == "JDBCPreProcessor":
+            data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
             sql_text = sub_element.element.find(".//stringProp[@name='query']").text
             # 对sql做提取
             sqls = re.findall(r"([delete|insert|update|select].*?';)", sql_text)
@@ -137,7 +138,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
             for sql in sqls:
                 sql = replace_argument(sql)
                 pre_sql = {
-                        "connection": connection,
+                        "connection": data_sources[data_source],
                         "id": "",
                         "type": "2",
                         "content": "%s" % sql
@@ -153,7 +154,7 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
                 check_string += check_string_root + messages[0] + "=" + messages[1] + ";"
 
             logger.info(check_string)
-    logger.info(request_body)
+    logger.debug(request_body)
     data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
     data_content["id"] = ""
     data_content["dataChoseRow"] = ""
@@ -178,45 +179,47 @@ def deal_threadgroup(root, node_path):
 
     messages = []
     # 获取到所有关键组件
+    step_num = 0
+    steps = []
     for sub_element in sub_elements:
         # 组件为禁用状态, 不读取
         if not sub_element.isEnabled():
             continue
-
         if sub_element.tag == "HTTPSamplerProxy":
-            # 在这里改成将 HTTP 组件保存下来, 在后面循环遍历 Message, 重复发送
-            http_companents.append(sub_element)
-
-    step_num = 0
-    steps = []
-    for http_companent in http_companents:
-        step_num += 1
-        path = http_companent.element.find(".//stringProp[@name='HTTPSampler.path']").text
-        script_name = path.split("/")[-1]
-        logger.info("script_name:%s" % script_name)
-        # 先添加脚本
-        ds = dealScriptData(node_path)
-        ds.set_data_with_default(script_name, root_url, path)
-        resp, script_id = post_blade.dealScriptData(ds)
-        # 再添加数据
-        steps.append(deal_HTTPSampler(http_companent, "步骤-" + str(step_num), script_id))
-    ioc.add_case(thread_group_name, steps)
-
+            step_num += 1
+            path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
+            script_name = path.split("/")[-1]
+            logger.info("script_name:%s" % script_name)
+            # 先添加脚本
+            ds = dealScriptData(node_path)
+            ds.set_data_with_default(script_name, root_url, path)
+            resp, script_id = post_blade.dealScriptData(ds)
+            # 再添加数据
+            steps.append(deal_HTTPSampler(sub_element, "步骤-" + str(step_num), script_id))
+            ioc.add_case(thread_group_name, steps)
+        elif sub_element.tag == "ConstantTimer":
+            # 处理定时器
+            pass
 
     resp = post_blade.importOfflineCase(ioc)
     logger.info(resp)
     if resp is not None:
         logger.error(thread_group_name + resp)
 
-# 配置数据库连接
-connection = "iibs_copp_mysql"
 # 根URL, 添加脚本时使用
 root_url = "ibps_jmeter_http"
 # 检查字符串, 根路径
 check_string_root = "bupps_resp_head_"
-
 # 定义blade根路径
 balde_root_name = "jmeter转blade测试"
+
+# 本地数据库名称与blade数据库名称映射
+data_sources = {
+    "ibps": "ibps_jmeter_oracle",
+    "test1": "ibps_jmeter_pz",
+    "fz": "ibps_jmeter_fz"
+}
+
 # 读取xml文件
 tree = ET.parse('../jmxfile/网银贷记往账.jmx')
 
@@ -243,4 +246,5 @@ for companent in companents:
             deal_arguments(companent, name)
         elif companent.tag == "ThreadGroup":
             logger.info(companent.get("testname"))
-            deal_threadgroup(companent, base_name)
+            if companent.has_sub_elements():
+                deal_threadgroup(companent, base_name)
