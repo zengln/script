@@ -192,7 +192,17 @@ class dealScriptData:
                              "header配置": "Content-Type=application/json;charset=UTF-8", "精准标签": "",
                              "超时时间": "300"}
         }
-        logger.info(data)
+        logger.debug(data)
+        self.data.append(data)
+
+    def set_wait_with_default(self, script_name, wait_time, script_remark=""):
+        data = {
+          "scriptName": "%s" % script_name,
+          "scriptContent": "wait|%s" % wait_time,
+          "scriptRemark": "%s" % script_remark,
+          "scriptJsonData": {"等待时间": "%s" % wait_time}
+        }
+        logger.debug(data)
         self.data.append(data)
 
 
