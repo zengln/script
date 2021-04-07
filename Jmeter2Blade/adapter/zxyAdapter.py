@@ -5,10 +5,9 @@
 
 import os
 import xml.etree.ElementTree as ET
-import json
 import re
 
-from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase
+from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase, importOfflineCase_step
 from Jmeter2Blade.util.log import logger
 from Jmeter2Blade.util.JmeterElement import JmeterElement
 from Jmeter2Blade.util.util import random_uuid
@@ -52,6 +51,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
             temp["sheet"+str(num)][-1].append(value)
 
     return result
+
 
 # 自定义变量组件处理
 def deal_arguments(root, node_name):
@@ -103,47 +103,38 @@ def replace_argument(text):
 
 
 # HTTP 请求组件处理
-def deal_HTTPSampler(root, step_name, script_content, request_body=""):
+def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
     check_string = ""
-    # 报文提取
-    step = dict()
-    step_json = dict()
-    data_content = dict()
-    step["stepName"] = step_name
-    step["stepJson"] = step_json
-    step_json["dataContent"] = data_content
-    step_json["stepDes"] = root.get("testname")
-    # 0—前置，1-后置，2-空
-    step_json["precisionTest"] = "2"
-    pre_sqls = list()
-    step_json["preSqlContent"] = pre_sqls
-    step_json["scriptContent"] = script_content
-    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容
+    # 初始化 step 数据
+    step = importOfflineCase_step()
+    step.set_stepname(step_name)
+    step.set_stepdes(root.get("testname"))
+
+    if script_content:
+        step.set_scriptcontent(script_content)
+
+    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容，request 特殊处理, 将其中使用的变量替换成blade变量
     if not request_body:
         request_body = root.element.find(".//stringProp[@name='Argument.value']").text
-
-    # request 特殊处理, 将其中使用的变量替换成blade变量
     request_body = replace_argument(request_body)
 
+    # HTTP 的子组件处理
     sub_elements = root.get_sub_elements()
     for sub_element in sub_elements:
+        # 组件禁用, 不读取
+        if not sub_element.isEnabled():
+            continue
+
         # 前置提取
         if sub_element.tag == "JDBCPreProcessor":
             data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
             sql_text = sub_element.element.find(".//stringProp[@name='query']").text
             # 对sql做提取
             sqls = re.findall(r"([delete|insert|update|select].*?';)", sql_text)
-            logger.info("提取的sql:")
-            logger.info(sqls)
+            logger.info("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
-                pre_sql = {
-                        "connection": data_sources[data_source],
-                        "id": "",
-                        "type": "2",
-                        "content": "%s" % sql
-                        }
-                pre_sqls.append(pre_sql)
+                step.add_presqlcontent(data_sources[data_source], sql)
         # 后置提取
         # 验证提取
         elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
@@ -155,13 +146,58 @@ def deal_HTTPSampler(root, step_name, script_content, request_body=""):
 
             logger.info(check_string)
     logger.debug(request_body)
-    data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
-    data_content["id"] = ""
-    data_content["dataChoseRow"] = ""
-    data_content["content"] = ""
+    step.set_dataarrcontent(Josn2Blade(eval(request_body), [], 0, check_string))
 
     logger.debug(step)
-    return step
+    return step.get_step()
+
+
+# 固定定时器组件处理
+def deal_constanttimer(root, step_name, script_content):
+    step = importOfflineCase_step()
+    step.set_default_dataarrcontent()
+    step.set_stepname(step_name)
+    step.set_stepdes(root.get("testname"))
+    step.set_scriptcontent(script_content)
+    return step.get_step()
+
+
+# JDBC 组件处理
+def deal_JDBCSample(root):
+    step = importOfflineCase_step()
+    step.set_stepname(root.get("testname"))
+    step.set_default_dataarrcontent()
+    step.set_stepdes(root.get("testname"))
+
+    sql = replace_argument(root.element.find(".//stringProp[@name='query']").text)
+    logger.info(sql)
+
+    data_source = root.element.find(".//stringProp[@name='dataSource']").text
+
+    sub_elements = root.get_sub_elements()
+
+    for sub_element in sub_elements:
+        if sub_element.tag == "ResponseAssertion":
+            check_values = sub_element.element.findall("collectionProp/stringProp")
+            logger.info(check_values)
+            check_keys = re.findall(r'select(.*?)from', sql)[0].strip().split(",")
+            check_string = ""
+            if len(check_keys) == len(check_values):
+                for i in range(len(check_values)):
+                    check_string += check_keys[i] + "=" + check_values[i].text
+                    if i == len(check_keys) - 1:
+                        check_string += ";"
+                    else:
+                        check_string += "|"
+            else:
+                check_string = "%s的查询语句的列数与验证个数不相等, 查询语句列数 %s, 验证结果个数%s" \
+                               % (root.get("testname"), len(check_keys), len(check_values))
+                logger.error(check_string)
+        elif sub_element.tag == "JDBCPreProcessor":
+            pass
+
+    step.add_checkcontent(check_string, data_sources[data_source], sql)
+    return step.get_step()
 
 
 # 线程组组件
@@ -177,7 +213,6 @@ def deal_threadgroup(root, node_path):
     # 初始化导入用例请求
     ioc = importOfflineCase(node_path)
 
-    messages = []
     # 获取到所有关键组件
     step_num = 0
     steps = []
@@ -185,6 +220,7 @@ def deal_threadgroup(root, node_path):
         # 组件为禁用状态, 不读取
         if not sub_element.isEnabled():
             continue
+
         if sub_element.tag == "HTTPSamplerProxy":
             step_num += 1
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
@@ -196,11 +232,20 @@ def deal_threadgroup(root, node_path):
             resp, script_id = post_blade.dealScriptData(ds)
             # 再添加数据
             steps.append(deal_HTTPSampler(sub_element, "步骤-" + str(step_num), script_id))
-            ioc.add_case(thread_group_name, steps)
         elif sub_element.tag == "ConstantTimer":
+            wait_time_text = sub_element.element.find(".//stringProp[@name='ConstantTimer.delay']").text
+            wait_time = int(wait_time_text) // 1000
+            script_name = "wait_" + str(wait_time) + "s"
+            # 新增一个定时延迟的脚本
+            ds = dealScriptData(node_path)
+            ds.set_wait_with_default(script_name, wait_time, sub_element.get("testname"))
+            resp, script_id = post_blade.dealScriptData(ds)
             # 处理定时器
-            pass
+            steps.append(deal_constanttimer(sub_element, "步骤-" + str(step_num), script_id))
+        elif sub_element.tag == "JDBCSampler":
+            steps.append(deal_JDBCSample(sub_element))
 
+    ioc.add_case(thread_group_name, steps)
     resp = post_blade.importOfflineCase(ioc)
     logger.info(resp)
     if resp is not None:
