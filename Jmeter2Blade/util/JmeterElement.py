@@ -34,6 +34,15 @@ class JmeterElement:
 
         return sub_elements
 
+    def has_sub_elements(self):
+        '''
+        判断是否有子组件
+        :return:
+        '''
+        if len(self.get_sub_elements()) == 0:
+            return False
+        return True
+
     def isEnabled(self):
         """
         判断组件是否启用
