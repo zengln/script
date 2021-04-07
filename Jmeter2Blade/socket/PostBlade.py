@@ -8,6 +8,7 @@ import json
 import Jmeter2Blade.util.util as util
 
 from Jmeter2Blade.util.log import logger
+from Jmeter2Blade.util.util import random_uuid
 
 
 class VariableData:
@@ -74,6 +75,91 @@ class importOfflineCase:
                 data[key] = value
 
         self.data.append(data)
+
+
+class importOfflineCase_step:
+
+    def __init__(self, step_name="", step_des=""):
+        self.step = dict()
+        self.step_json = dict()
+        # 初始化 step
+        self.step["stepName"] = step_name
+        self.step["stepJson"] = self.step_json
+        # 初始化 step_json
+        self.step_json["stepDes"] = step_des
+        self.step_json["Expect"] = ""
+        self.step_json["inputData"] = ""
+        self.step_json["precisionTest"] = "2"
+        self.step_json["preSqlContent"] = list()
+        self.step_json["scriptContent"] = ""
+        self.step_json["dataContent"] = dict()
+        self.step_json["checkContent"] = list()
+        self.step_json["stepExcute"] = ""
+
+    def get_step(self):
+        return self.step
+
+    def set_stepname(self, step_name):
+        self.step["stepName"] = step_name
+
+    def set_stepdes(self, step_des):
+        self.step_json["stepDes"] = step_des
+
+    def set_expect(self, expect):
+        self.step_json["Expect"] = expect
+
+    def set_inputdata(self, input_data):
+        self.step_json["inputData"] = input_data
+
+    def set_presqlcontent(self, presqlcontent):
+        self.step_json["preSqlContent"] = presqlcontent
+
+    def add_presqlcontent(self, data_source, sql):
+        pre_sql = {
+            "connection": data_source,
+            "id": "",
+            "type": "2",
+            "content": "%s" % sql
+        }
+        self.step_json["preSqlContent"].append(pre_sql)
+
+    def set_scriptcontent(self,scriptcontent):
+        self.step_json["scriptContent"] = scriptcontent
+
+    def set_datacontent(self, datacontent):
+        self.step_json["dataContent"] = datacontent
+
+    def set_checkcontent(self, checkcontent):
+        self.step_json["checkContent"] = checkcontent
+
+    def add_checkcontent(self, checkcontent):
+        self.step_json["checkContent"].append(checkcontent)
+
+    def set_stepexcute(self, stepexcute):
+        self.step_json["stepExcute"] = stepexcute
+
+    def set_dataarrcontent(self, dataarrcontent):
+        data_content = self.step_json["dataContent"]
+        data_content["id"] = ""
+        data_content["dataChoseRow"] = ""
+        data_content["content"] = ""
+        data_content["dataArrContent"] = dataarrcontent
+
+    def set_default_dataarrcontent(self):
+        default_data_content = list()
+        temp = dict()
+        temp["sheet0"] = list()
+        one = [random_uuid(32), "序号", "期望"]
+        two = [random_uuid(32), "参数说明", ""]
+        temp["sheet0"].append(one)
+        temp["sheet0"].append(two)
+        default_data_content.append(temp)
+
+        data_content = self.step_json["dataContent"]
+        data_content["id"] = ""
+        data_content["dataChoseRow"] = ""
+        data_content["content"] = ""
+        data_content["dataArrContent"] = default_data_content
 
 
 class dealScriptData:
