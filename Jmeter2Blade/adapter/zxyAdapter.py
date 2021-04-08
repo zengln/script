@@ -53,6 +53,13 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     return result
 
 
+# 检查变量名称是否按照blade规则命名
+def check_argument(argument):
+    if not argument.startswith("varc_"):
+        argument = "varc_" + argument
+    return argument
+
+
 # 自定义变量组件处理
 def deal_arguments(root, node_name):
     variable_date = VariableData(node_name)
@@ -61,11 +68,7 @@ def deal_arguments(root, node_name):
 
         var_name = child.find(".//stringProp[@name='Argument.name']")
         if var_name is not None:
-            if var_name.text.startswith("varc_"):
-                data["varName"] = var_name.text
-            else:
-                # 将本地变量转成blade格式
-                data["varName"] = "varc_" + var_name.text
+            data["varName"] = check_argument(var_name.text)
 
         var_content = child.find(".//stringProp[@name='Argument.value']")
         if var_content is not None:
@@ -251,10 +254,11 @@ def deal_user_parameters(root):
     names = root.element.findall("collectionProp[@name='UserParameters.names']/stringProp")
     values = root.element.findall("collectionProp[@name='UserParameters.thread_values']//stringProp")
     for i in range(len(names)):
-        params_str += names[i].text + "|" + values[i].text + ";"
+        params_str += check_argument(names[i].text) + "|" + values[i].text + ";"
     logger.info(params_str)
     step.add_presqlcontent(data_sources["default"], params_str)
     return step.get_step()
+
 
 # 线程组组件
 def deal_threadgroup(root, node_path):
