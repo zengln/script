@@ -92,12 +92,18 @@ def replace_argument(text):
         if argument.startswith("__"):
             continue
 
+        jmeter_argument = '${' + argument + '}'
         # 变量名称替换为 blade 规则
         if argument.startswith("varc"):
             blade_argument = argument
         else:
             blade_argument = 'varc_' + argument
-        jmeter_argument = '${' + argument + '}'
+
+        # 替换掉 var_name_1 -> var_name
+        temp_list = re.findall(r'(.*?)_[0-9]{1}', blade_argument)
+        if temp_list:
+            blade_argument = temp_list[0]
+
         text = text.replace(jmeter_argument, blade_argument)
     return text
 
@@ -179,7 +185,6 @@ def deal_JDBCSample(root):
     for sub_element in sub_elements:
         if sub_element.tag == "ResponseAssertion":
             check_values = sub_element.element.findall("collectionProp/stringProp")
-            logger.info(check_values)
             check_keys = re.findall(r'select(.*?)from', sql)[0].strip().split(",")
             check_string = ""
             if len(check_keys) == len(check_values):
@@ -193,18 +198,21 @@ def deal_JDBCSample(root):
                 check_string = "%s的查询语句的列数与验证个数不相等, 查询语句列数 %s, 验证结果个数%s" \
                                % (root.get("testname"), len(check_keys), len(check_values))
                 logger.error(check_string)
+            step.add_checkcontent(check_string, data_sources[data_source], sql)
         elif sub_element.tag == "JDBCPreProcessor":
-            pass
+            pre_sql = replace_argument(sub_element.element.find(".//stringProp[@name='query']").text)
+            logger.info(pre_sql)
+            data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
+            variable_name = sub_element.element.find(".//stringProp[@name='variableNames']").text
+            if variable_name:
+                pre_sql = variable_name + "|" + pre_sql
+            step.add_presqlcontent(data_sources[data_source], pre_sql)
 
-    step.add_checkcontent(check_string, data_sources[data_source], sql)
     return step.get_step()
 
 
 # 线程组组件
 def deal_threadgroup(root, node_path):
-    # HTTP 组件
-    http_companents = []
-
     # 线程组名称, 作为用例名称
     thread_group_name = root.get("testname")
     logger.info(node_path)
