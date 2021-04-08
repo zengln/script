@@ -95,6 +95,7 @@ class importOfflineCase_step:
         self.step_json["dataContent"] = dict()
         self.step_json["checkContent"] = list()
         self.step_json["stepExcute"] = ""
+        self.set_default_dataarrcontent()
 
     def get_step(self):
         return self.step
