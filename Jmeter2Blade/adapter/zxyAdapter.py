@@ -161,7 +161,6 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
 # 固定定时器组件处理
 def deal_constanttimer(root, step_name, script_content):
     step = importOfflineCase_step()
-    step.set_default_dataarrcontent()
     step.set_stepname(step_name)
     step.set_stepdes(root.get("testname"))
     step.set_scriptcontent(script_content)
@@ -172,7 +171,6 @@ def deal_constanttimer(root, step_name, script_content):
 def deal_JDBCSample(root):
     step = importOfflineCase_step()
     step.set_stepname(root.get("testname"))
-    step.set_default_dataarrcontent()
     step.set_stepdes(root.get("testname"))
 
     sql = replace_argument(root.element.find(".//stringProp[@name='query']").text)
@@ -211,19 +209,11 @@ def deal_JDBCSample(root):
     return step.get_step()
 
 
-# 线程组组件
-def deal_threadgroup(root, node_path):
-    # 线程组名称, 作为用例名称
-    thread_group_name = root.get("testname")
-    logger.info(node_path)
-    sub_elements = root.get_sub_elements()[0].get_sub_elements()
-
-    # 初始化导入用例请求
-    ioc = importOfflineCase(node_path)
-
+def deal_transaction_controller(root, node_path, steps):
+    sub_elements = root.get_sub_elements()
     # 获取到所有关键组件
-    step_num = 0
-    steps = []
+    step_num = len(steps)
+
     for sub_element in sub_elements:
         # 组件为禁用状态, 不读取
         if not sub_element.isEnabled():
@@ -253,6 +243,42 @@ def deal_threadgroup(root, node_path):
         elif sub_element.tag == "JDBCSampler":
             steps.append(deal_JDBCSample(sub_element))
 
+
+def deal_user_parameters(root):
+    step = importOfflineCase_step()
+    step.set_stepdes(root.get("testname"))
+    params_str = ""
+    names = root.element.findall("collectionProp[@name='UserParameters.names']/stringProp")
+    values = root.element.findall("collectionProp[@name='UserParameters.thread_values']//stringProp")
+    for i in range(len(names)):
+        params_str += names[i].text + "|" + values[i].text + ";"
+    logger.info(params_str)
+    step.add_presqlcontent(data_sources["default"], params_str)
+    return step.get_step()
+
+# 线程组组件
+def deal_threadgroup(root, node_path):
+    # 线程组名称, 作为用例名称
+    thread_group_name = root.get("testname")
+    logger.info(node_path)
+    sub_elements = root.get_sub_elements()
+
+    # 初始化导入用例请求
+    ioc = importOfflineCase(node_path)
+
+    steps = []
+    # 获取到所有关键组件
+    for sub_element in sub_elements:
+        # 组件为禁用状态, 不读取
+        if not sub_element.isEnabled():
+            continue
+
+        if sub_element.tag == "TransactionController":
+            deal_transaction_controller(sub_element, node_path, steps)
+        elif sub_element.tag == "UserParameters":
+            # 用户参数处理
+            steps.append(deal_user_parameters(sub_element))
+
     ioc.add_case(thread_group_name, steps)
     resp = post_blade.importOfflineCase(ioc)
     logger.info(resp)
@@ -270,7 +296,8 @@ balde_root_name = "jmeter转blade测试"
 data_sources = {
     "ibps": "ibps_jmeter_oracle",
     "test1": "ibps_jmeter_pz",
-    "fz": "ibps_jmeter_fz"
+    "fz": "ibps_jmeter_fz",
+    "default": "ibps_jmeter_oracle"
 }
 
 # 读取xml文件
@@ -290,14 +317,16 @@ post_blade = PostBlade()
 
 
 for companent in companents:
-    if companent.isEnabled():
-        # 自定义变量组件处理
-        if companent.tag == "Arguments":
-            # jmeter转blade测试/iibs/自定义变量
-            name = base_name + companent.get("testname")
-            logger.info(name)
-            deal_arguments(companent, name)
-        elif companent.tag == "ThreadGroup":
-            logger.info(companent.get("testname"))
-            if companent.has_sub_elements():
-                deal_threadgroup(companent, base_name)
+    if not companent.isEnabled():
+        continue
+
+    # 自定义变量组件处理
+    if companent.tag == "Arguments":
+        # jmeter转blade测试/iibs/自定义变量
+        name = base_name + companent.get("testname")
+        logger.info(name)
+        deal_arguments(companent, name)
+    elif companent.tag == "ThreadGroup":
+        logger.info(companent.get("testname"))
+        if companent.has_sub_elements():
+            deal_threadgroup(companent, base_name)
