@@ -185,20 +185,23 @@ def deal_JDBCSample(root):
 
     for sub_element in sub_elements:
         if sub_element.tag == "ResponseAssertion":
-            check_values = sub_element.element.findall("collectionProp/stringProp")
-            check_keys = re.findall(r'select(.*?)from', sql)[0].strip().split(",")
             check_string = ""
-            if len(check_keys) == len(check_values):
-                for i in range(len(check_values)):
-                    check_string += check_keys[i] + "=" + check_values[i].text
-                    if i == len(check_keys) - 1:
-                        check_string += ";"
-                    else:
-                        check_string += "|"
+            checks = sub_element.element.find("collectionProp/stringProp").text
+            if checks:
+                checks_list = checks.split("\n")
+                logger.info(checks_list)
+                check_keys = checks_list[0].split("\t")
+                check_values = checks_list[1].split("\t")
             else:
-                check_string = "%s的查询语句的列数与验证个数不相等, 查询语句列数 %s, 验证结果个数%s" \
-                               % (root.get("testname"), len(check_keys), len(check_values))
-                logger.error(check_string)
+                check_keys = re.findall(r'select(.*?)from', sql)[0].strip().split(",")
+                check_values = [''] * len(check_keys)
+
+            for i in range(len(check_keys)):
+                check_string += check_keys[i] + "=" + check_values[i]
+                if i == len(check_keys) - 1:
+                    check_string += ";"
+                else:
+                    check_string += "|"
             step.add_checkcontent(check_string, data_sources[data_source], sql)
         elif sub_element.tag == "JDBCPreProcessor":
             pre_sql = replace_argument(sub_element.element.find(".//stringProp[@name='query']").text)
