@@ -186,12 +186,11 @@ def deal_JDBCSample(root):
     for sub_element in sub_elements:
         if sub_element.tag == "ResponseAssertion":
             check_string = ""
-            checks_element = sub_element.element.find("collectionProp/stringProp")
-            if checks_element:
-                checks = checks_element.text
-            else:
+            checks_element = sub_element.element.find("collectionProp//stringProp")
+            if checks_element is None:
                 checks = ""
-
+            else:
+                checks = checks_element.text
             if checks:
                 checks_list = checks.split("\n")
                 logger.info(checks_list)
@@ -205,12 +204,12 @@ def deal_JDBCSample(root):
                     else:
                         check_values.append(checks_list[i].split("\t"))
             else:
-                check_keys = re.findall(r'select(.*?)from', sql)[0].strip().split(",")
+                check_keys = re.findall(r'select(.*?)from', sql)[0].split(",")
                 check_values = [[''] * len(check_keys)]
 
             for value_index in range(len(check_values)):
                 for key_index in range(len(check_keys)):
-                    check_string += check_keys[key_index] + "=" + check_values[value_index][key_index]
+                    check_string += check_keys[key_index].strip() + "=" + check_values[value_index][key_index]
                     if value_index == len(check_values) - 1 and key_index == len(check_keys) - 1:
                         check_string += ";"
                     else:
