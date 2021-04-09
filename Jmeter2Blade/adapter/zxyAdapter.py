@@ -183,6 +183,12 @@ def deal_JDBCSample(root):
 
     sub_elements = root.get_sub_elements()
 
+    # 没有子组件, 纯粹是执行一条sql
+    if not sub_elements:
+        logger.debug("no sub element")
+        step.add_presqlcontent(data_sources[data_source], sql)
+        return step.get_step()
+
     for sub_element in sub_elements:
         if sub_element.tag == "ResponseAssertion":
             check_string = ""
