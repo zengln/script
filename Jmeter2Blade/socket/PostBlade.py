@@ -213,6 +213,16 @@ class dealScriptData:
         logger.debug(data)
         self.data.append(data)
 
+    def set_ssh_with_default(self, script_name, ssh_connect, script_remark=""):
+        data = {
+          "scriptName": "%s" % script_name,
+          "scriptContent": "ssh|%s,60" % ssh_connect,
+          "scriptRemark": "%s" % script_remark,
+          "scriptJsonData": {"服务器连接": "%s" % ssh_connect, "超时时间": "60"}
+        }
+        logger.debug(data)
+        self.data.append(data)
+
 
 class PostBlade:
     """
