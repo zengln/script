@@ -170,6 +170,27 @@ def deal_constanttimer(root, step_name, script_content):
     return step.get_step()
 
 
+# BeanShellSample 组件
+def deal_beanshellsampler(root, step_name, script_content):
+    data_content = list()
+    temp = dict()
+    temp["sheet0"] = list()
+    one = [random_uuid(32), "序号", "期望", "command"]
+    two = [random_uuid(32), "参数说明", "", "脚本文件需要事先放到redis的bin目录下"]
+    three = [random_uuid(32), "", "keyword=OK", "EXEC,sh clear_redis_ibps.sh;"]
+    temp["sheet0"].append(one)
+    temp["sheet0"].append(two)
+    temp["sheet0"].append(three)
+    data_content.append(temp)
+
+    step = importOfflineCase_step()
+    step.set_stepname(step_name)
+    step.set_stepdes(root.get("testname"))
+    step.set_scriptcontent(script_content)
+    step.set_dataarrcontent(data_content)
+    return step.get_step()
+
+
 # JDBC 组件处理
 def deal_JDBCSample(root):
     step = importOfflineCase_step()
@@ -268,6 +289,15 @@ def deal_transaction_controller(root, node_path, steps):
             steps.append(deal_constanttimer(sub_element, "步骤-" + str(step_num), script_id))
         elif sub_element.tag == "JDBCSampler":
             steps.append(deal_JDBCSample(sub_element))
+        elif sub_element.tag == "BeanShellSampler":
+            # 添加脚本
+            script_name = "redis"
+            ssh_connect = "redis"
+            ds = dealScriptData(node_path)
+            ds.set_ssh_with_default(script_name, ssh_connect, sub_element.get("testname"))
+            resp, script_id = post_blade.dealScriptData(ds)
+            # 添加数据
+            steps.append(deal_beanshellsampler(sub_element, "步骤-" + str(step_num), script_id))
 
 
 def deal_user_parameters(root):
