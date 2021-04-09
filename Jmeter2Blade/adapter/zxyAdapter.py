@@ -293,7 +293,7 @@ def deal_transaction_controller(root, node_path, steps):
         elif sub_element.tag == "BeanShellSampler":
             # 添加脚本
             script_name = "redis_jmeter"
-            ssh_connect = "redis"
+            ssh_connect = "redis_jmeter"
             ds = dealScriptData(node_path)
             ds.set_ssh_with_default(script_name, ssh_connect, sub_element.get("testname"))
             resp, script_id = post_blade.dealScriptData(ds)
