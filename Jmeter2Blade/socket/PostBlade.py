@@ -223,6 +223,19 @@ class dealScriptData:
         logger.debug(data)
         self.data.append(data)
 
+    def set_mq_with_default(self, script_name, mq_message, script_remark=""):
+        data = {
+          "scriptName": "%s" % script_name,
+          "scriptContent": "ibmmq|%s,%s,%s,%s,%s" % (mq_message["connect"], mq_message["manager"],
+                                                     mq_message["queue"], mq_message["channel"],
+                                                     mq_message["ccsid"]),
+          "scriptRemark": "%s" % script_remark,
+          "scriptJsonData": {"ibmmq连接": "%s" % mq_message["connect"], "队列管理器": "%s" % mq_message["manager"],
+                             "队列": "%s" % mq_message["queue"], "通道": "%s" % mq_message["channel"],
+                             "字符集": "%s" % mq_message["ccsid"]}
+        }
+        logger.debug(data)
+        self.data.append(data)
 
 class PostBlade:
     """
