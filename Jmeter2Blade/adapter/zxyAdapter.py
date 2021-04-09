@@ -291,7 +291,7 @@ def deal_transaction_controller(root, node_path, steps):
             steps.append(deal_JDBCSample(sub_element))
         elif sub_element.tag == "BeanShellSampler":
             # 添加脚本
-            script_name = "redis"
+            script_name = "redis_jmeter"
             ssh_connect = "redis"
             ds = dealScriptData(node_path)
             ds.set_ssh_with_default(script_name, ssh_connect, sub_element.get("testname"))
