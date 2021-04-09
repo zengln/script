@@ -112,6 +112,14 @@ def replace_argument(text):
     return text
 
 
+# 判断变量是否为jmeter变量, 并且返回对应的值
+def jmeter_get_argument_value(argument):
+    key = re.findall(r'\${(.*?)}', argument)
+    if not key:
+        return argument
+    return arguments_local[key[0]]
+
+
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
     check_string = ""
@@ -171,8 +179,8 @@ def deal_constanttimer(root, step_name, script_content):
     return step.get_step()
 
 
-# BeanShellSample 组件
-def deal_beanshellsampler(root, step_name, script_content):
+# redis BeanShellSample 组件
+def deal_redis_beanshellsampler(root, step_name, script_content):
     data_content = list()
     temp = dict()
     temp["sheet0"] = list()
@@ -190,6 +198,48 @@ def deal_beanshellsampler(root, step_name, script_content):
     step.set_scriptcontent(script_content)
     step.set_dataarrcontent(data_content)
     return step.get_step()
+
+
+# 来帐报文 BeanShellSample 组件
+def deal_msg_beanshellsampler(root, step_name):
+    step = importOfflineCase_step()
+    step.set_stepname(step_name)
+    step.set_stepdes(root.get("testname"))
+
+    sub_elements = root.get_sub_elements()
+    for sub_element in sub_elements:
+        if not sub_element.isEnabled():
+            continue
+
+        if sub_element.tag == "JDBCPreProcessor":
+            data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
+            sql_text = sub_element.element.find(".//stringProp[@name='query']").text
+            # 对sql做提取
+            sqls = re.findall(
+                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?';)",
+                sql_text)
+            logger.info("提取的sql:%s" % str(sqls))
+            for sql in sqls:
+                sql = replace_argument(sql)
+                step.add_presqlcontent(data_sources[data_source], sql)
+
+    script_text = root.element.find(".//stringProp[@name='BeanShellSampler.query']").text
+    body = replace_argument(re.findall(r'String msg_body=(.*?);', script_text)[0])
+    body = body.replace("\\r\\n", "\r\n")
+    logger.debug(body)
+
+    data_content = list()
+    temp = dict()
+    temp["sheet0"] = list()
+    one = [random_uuid(32), "序号", "期望", "body"]
+    two = [random_uuid(32), "参数说明", "", ""]
+    three = [random_uuid(32), "", "", body]
+    temp["sheet0"].append(one)
+    temp["sheet0"].append(two)
+    temp["sheet0"].append(three)
+    data_content.append(temp)
+    step.set_dataarrcontent(data_content)
+    return step
 
 
 # JDBC 组件处理
@@ -212,6 +262,9 @@ def deal_JDBCSample(root):
         return step.get_step()
 
     for sub_element in sub_elements:
+        if not sub_element.isEnabled():
+            continue
+
         if sub_element.tag == "ResponseAssertion":
             check_string = ""
             checks_element = sub_element.element.find("collectionProp//stringProp")
@@ -259,6 +312,7 @@ def deal_transaction_controller(root, node_path, steps):
     sub_elements = root.get_sub_elements()
     # 获取到所有关键组件
     step_num = len(steps)
+    step_object = None
 
     for sub_element in sub_elements:
         # 组件为禁用状态, 不读取
@@ -291,14 +345,49 @@ def deal_transaction_controller(root, node_path, steps):
         elif sub_element.tag == "JDBCSampler":
             steps.append(deal_JDBCSample(sub_element))
         elif sub_element.tag == "BeanShellSampler":
-            # 添加脚本
-            script_name = "redis_jmeter"
-            ssh_connect = "redis_jmeter"
-            ds = dealScriptData(node_path)
-            ds.set_ssh_with_default(script_name, ssh_connect, sub_element.get("testname"))
-            resp, script_id = post_blade.dealScriptData(ds)
-            # 添加数据
-            steps.append(deal_beanshellsampler(sub_element, "步骤-" + str(step_num), script_id))
+            # redis beanshell 脚本处理
+            if "redis" in sub_element.get("testname"):
+                # 添加脚本
+                script_name = "redis_jmeter"
+                ssh_connect = "redis_jmeter"
+                ds = dealScriptData(node_path)
+                ds.set_ssh_with_default(script_name, ssh_connect, sub_element.get("testname"))
+                resp, script_id = post_blade.dealScriptData(ds)
+                # 添加数据
+                steps.append(deal_redis_beanshellsampler(sub_element, "步骤-" + str(step_num), script_id))
+            else:
+                # 其他处理方式, 默认为报文
+                step_object = deal_msg_beanshellsampler(sub_element, "步骤-" + str(step_num))
+        elif sub_element.tag == "org.apache.jmeter.protocol.MQComm.sampler.MQPutMessageSampler":
+            if step_object is not None:
+                ibm_mq_message = dict()
+                ibm_mq_message["connect"] = ibm_mq_connect
+                manager = jmeter_get_argument_value(sub_element.element.find(
+                    ".//stringProp[@name='MQPutMessageSampler.MQ_MANAGER']").text)
+                logger.info(manager)
+                ibm_mq_message["manager"] = manager
+                queue = jmeter_get_argument_value(sub_element.element.find(
+                    ".//stringProp[@name='MQPutMessageSampler.MQ_QUEUE']").text)
+                logger.info(queue)
+                ibm_mq_message["queue"] = queue
+                channel = jmeter_get_argument_value(sub_element.element.find(
+                    ".//stringProp[@name='MQPutMessageSampler.MQ_CHANNEL']").text)
+                logger.info(channel)
+                ibm_mq_message["channel"] = channel
+                ccsid = jmeter_get_argument_value(sub_element.element.find(
+                    ".//stringProp[@name='MQPutMessageSampler.MQ_CCSID']").text)
+                logger.info(ccsid)
+                ibm_mq_message["ccsid"] = ccsid
+                # 添加脚本
+                ds = dealScriptData(node_path)
+                ds.set_mq_with_default(ibm_mq_connect, ibm_mq_message)
+                resp, script_id = post_blade.dealScriptData(ds)
+                # 添加数据
+                step_object.set_scriptcontent(script_id)
+                step = step_object.get_step()
+                steps.append(step)
+            else:
+                logger.info("IBM MQ 组件前没有获取到对应的Msg BeanShell 组件")
 
 
 def deal_user_parameters(root):
@@ -361,6 +450,9 @@ data_sources = {
 
 # 本地保存用户定义变量, 在其他组件中到变量直接替换数据
 arguments_local = dict()
+
+# IBM MQ 连接名称
+ibm_mq_connect = "ibm_jmeter_mq"
 
 # 读取xml文件
 tree = ET.parse('../jmxfile/网银贷记往账.jmx')
