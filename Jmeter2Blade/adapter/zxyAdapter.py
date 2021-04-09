@@ -78,6 +78,7 @@ def deal_arguments(root, node_name):
         if variable_remark is not None:
             data["variableRemark"] = variable_remark.text
 
+        arguments_local[var_name.text] = var_content.text
         variable_date.set_data(data)
 
     resp = post_blade.dealVariableData(variable_date)
@@ -342,6 +343,7 @@ def deal_threadgroup(root, node_path):
     if resp is not None:
         logger.error(thread_group_name + resp)
 
+
 # 根URL, 添加脚本时使用
 root_url = "ibps_jmeter_http"
 # 检查字符串, 根路径
@@ -356,6 +358,9 @@ data_sources = {
     "fz": "ibps_jmeter_fz",
     "default": "ibps_jmeter_oracle"
 }
+
+# 本地保存用户定义变量, 在其他组件中到变量直接替换数据
+arguments_local = dict()
 
 # 读取xml文件
 tree = ET.parse('../jmxfile/网银贷记往账.jmx')
