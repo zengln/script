@@ -257,6 +257,8 @@ def deal_transaction_controller(root, node_path, steps):
         elif sub_element.tag == "ConstantTimer":
             wait_time_text = sub_element.element.find(".//stringProp[@name='ConstantTimer.delay']").text
             wait_time = int(wait_time_text) // 1000
+            if wait_time == 0:
+                wait_time = 1
             script_name = "wait_" + str(wait_time) + "s"
             # 新增一个定时延迟的脚本
             ds = dealScriptData(node_path)
