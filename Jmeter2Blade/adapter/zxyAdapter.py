@@ -272,11 +272,21 @@ def deal_JDBCSample(root):
 
         if sub_element.tag == "ResponseAssertion":
             check_string = ""
-            checks_element = sub_element.element.find("collectionProp//stringProp")
+            checks_element = sub_element.element.findall("collectionProp//stringProp")
             if checks_element is None:
                 checks = ""
+            elif len(checks_element) == 1:
+                checks = checks_element[0].text
             else:
-                checks = checks_element.text
+                check_keys = re.findall(r'(?:select|SELECT|Select)(.*)(?:FROM|from|From)', sql)[0].replace(' ', '').replace(',', '\\t')
+                check_value = ""
+                for check_element_index in range(len(checks_element)):
+                    check_value += checks_element[check_element_index].text
+                    if check_element_index != len(checks_element) - 1:
+                        check_value += "\\t"
+                checks = check_keys + "\\n" + check_value
+
+
             if checks:
                 checks_list = checks.split("\n")
                 logger.info(checks_list)
