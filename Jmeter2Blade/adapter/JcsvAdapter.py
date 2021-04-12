@@ -44,7 +44,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     for key, value in message.items():
         if isinstance(value, dict):
             dict_num += 1
-            temp["sheet" + str(num)][0].append(key+"(object)")
+            temp["sheet" + str(num)][0].append(key+"(Object)")
             temp["sheet" + str(num)][-1].append("sheet"+str(num+dict_num)+"|1")
             Josn2Blade(value, result, num+dict_num)
         else:
@@ -166,6 +166,7 @@ def deal_JDBCSample(root):
     pre_sqls.append(pre_sql)
     step_json["preSqlContent"] = pre_sqls
     return step
+
 
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, script_content, request_body="", check_message=""):
@@ -296,6 +297,7 @@ def deal_threadgroup(root, node_path):
             for http_companent in http_companents:
                 step_num += 1
                 path = http_companent.element.find(".//stringProp[@name='HTTPSampler.path']").text
+                logger.info(path)
                 # 先添加脚本
                 ds = dealScriptData(node_path)
                 ds.set_data_with_default(http_companent.get("testname"), root_url, path, thread_group_name)
@@ -303,7 +305,7 @@ def deal_threadgroup(root, node_path):
                 # 再添加数据
                 request_body_half = http_companent.element.find(".//stringProp[@name='Argument.value']").text
                 requst_body = request_body_half.replace("${req_body}", message["body"])
-                logger.info(requst_body)
+                logger.debug(requst_body)
                 steps.append(deal_HTTPSampler(http_companent, "步骤-"+str(step_num), script_id, requst_body,
                                               message["check_message"]))
             ioc.add_case(message["casename"], steps)
@@ -313,6 +315,7 @@ def deal_threadgroup(root, node_path):
         for http_companent in http_companents:
             step_num += 1
             path = http_companent.element.find(".//stringProp[@name='HTTPSampler.path']").text
+            logger.info(path)
             # 先添加脚本
             ds = dealScriptData(node_path)
             ds.set_data_with_default(http_companent.get("testname"), root_url, path, thread_group_name)
@@ -331,7 +334,7 @@ def deal_threadgroup(root, node_path):
 # 配置数据库连接
 connection = "iibs_copp_mysql"
 # 根URL, 添加脚本时试用
-root_url = "iibs_copp_jmeter"
+root_url = "iibs_http"
 # 定义blade根路径
 balde_root_name = "jmeter转blade测试"
 # 读取xml文件
