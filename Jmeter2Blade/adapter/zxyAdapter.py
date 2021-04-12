@@ -147,11 +147,16 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
         if sub_element.tag == "JDBCPreProcessor":
             data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
             sql_text = sub_element.element.find(".//stringProp[@name='query']").text
+            variable_name = sub_element.element.find(".//stringProp[@name='variableNames']").text
             # 对sql做提取
-            sqls = re.findall(r"([delete|insert|update|select].*?';)", sql_text)
+            sqls = re.findall(
+                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?';)",
+                sql_text)
             logger.info("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
+                if variable_name:
+                    sql = variable_name + "|" + sql
                 step.add_presqlcontent(data_sources[data_source], sql)
         # 后置提取
         # 验证提取
