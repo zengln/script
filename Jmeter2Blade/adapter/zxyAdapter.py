@@ -150,7 +150,7 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
             variable_name = sub_element.element.find(".//stringProp[@name='variableNames']").text
             # 对sql做提取
             sqls = re.findall(
-                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?';)",
+                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?'.*;)",
                 sql_text)
             logger.info("提取的sql:%s" % str(sqls))
             for sql in sqls:
@@ -221,7 +221,7 @@ def deal_msg_beanshellsampler(root, step_name):
             sql_text = sub_element.element.find(".//stringProp[@name='query']").text
             # 对sql做提取
             sqls = re.findall(
-                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?';)",
+                r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?'.*;)",
                 sql_text)
             logger.info("提取的sql:%s" % str(sqls))
             for sql in sqls:
