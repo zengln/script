@@ -43,7 +43,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     for key, value in message.items():
         if isinstance(value, dict):
             dict_num += 1
-            temp["sheet" + str(num)][0].append(key+"(object)")
+            temp["sheet" + str(num)][0].append(key+"(Object)")
             temp["sheet" + str(num)][-1].append("sheet"+str(num+dict_num)+"|1")
             Josn2Blade(value, result, num+dict_num)
         else:
@@ -469,7 +469,7 @@ arguments_local = dict()
 ibm_mq_connect = "ibm_jmeter_mq"
 
 # 读取xml文件
-tree = ET.parse('../jmxfile/网银贷记往账.jmx')
+tree = ET.parse('../jmxfile/ibps/第三方贷记往账.jmx')
 
 # 获取xml根节点
 root = tree.getroot()
