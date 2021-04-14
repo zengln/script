@@ -27,11 +27,12 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     temp["sheet"+str(num)] = []
     result.append(temp)
     dict_num = 0
+    data_chose_row = random_uuid(32)
     # 传入了验证字段, 则 0 特殊处理
     if check_Message and num == 0:
         one = [random_uuid(32), "序号", "期望"]
         two = [random_uuid(32), "参数说明", ""]
-        three = [random_uuid(32), "", check_Message]
+        three = [data_chose_row, "", check_Message]
         temp["sheet"+str(num)].append(one)
         temp["sheet"+str(num)].append(two)
         temp["sheet"+str(num)].append(three)
@@ -51,7 +52,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
             temp["sheet"+str(num)][0].append(key)
             temp["sheet"+str(num)][-1].append(value)
 
-    return result
+    return data_chose_row, result
 
 
 # CSV 文件处理
@@ -78,7 +79,7 @@ def deal_csv_file(filename):
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
     logger.info(filename)
-    csv_file = open(r"../file/"+filename, encoding="gbk")
+    csv_file = open(r"../file/"+filename, encoding="utf-8")
     # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
     message_stop_index = 0
     titles = csv_file.readline().split(",")
@@ -224,9 +225,8 @@ def deal_HTTPSampler(root, step_name, script_content, request_body="", check_mes
             logger.debug(check_message)
             check_string = check_message
     logger.debug(request_body)
-    data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
+    data_content["dataChoseRow"], data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
     data_content["id"] = ""
-    data_content["dataChoseRow"] = ""
     data_content["content"] = ""
 
     logger.debug(step)
@@ -338,7 +338,7 @@ root_url = "iibs_http"
 # 定义blade根路径
 balde_root_name = "jmeter转blade测试"
 # 读取xml文件
-tree = ET.parse('../jmxfile/iibs_copp.jmx')
+tree = ET.parse('../jmxfile/iibs_abs_jres.jmx')
 # 获取xml根节点
 root = tree.getroot()
 # 找到TestPlan组件, 获取blade二级路径名
