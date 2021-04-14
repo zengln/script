@@ -79,7 +79,7 @@ def deal_csv_file(filename):
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
     logger.info(filename)
-    csv_file = open(r"../file/"+filename, encoding="utf-8")
+    csv_file = open(r"../file/"+filename, encoding="utf8")
     # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
     message_stop_index = 0
     titles = csv_file.readline().split(",")
@@ -103,7 +103,7 @@ def deal_csv_file(filename):
             message["case_side_type"] = "0"
         else:
             message["case_side_type"] = "1"
-        message["check_message"] = '"respCode":"' + data[-2] + '","respMsg":"' + data[-1] + '"'
+        message["check_message"] = check_msg_head + 'respCode=' + data[-2] + ';' + check_msg_head + 'respMsg=' + data[-1] + ';'
         message["body"] = json.dumps(temp)
         messages.append(message)
 
@@ -331,8 +331,9 @@ def deal_threadgroup(root, node_path):
     if resp is not None:
         logger.error(thread_group_name + resp)
 
+check_msg_head = "iibs_resp_head_"
 # 配置数据库连接
-connection = "iibs_copp_mysql"
+connection = "iibs_jmeter_oracle"
 # 根URL, 添加脚本时试用
 root_url = "iibs_http"
 # 定义blade根路径
