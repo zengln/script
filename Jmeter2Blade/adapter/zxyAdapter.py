@@ -7,11 +7,13 @@ import os
 import xml.etree.ElementTree as ET
 import re
 
+from pathlib import Path
 from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase, importOfflineCase_step
 from Jmeter2Blade.util.log import logger
 from Jmeter2Blade.util.JmeterElement import JmeterElement
 from Jmeter2Blade.util.util import random_uuid
 
+count = 1
 
 def Josn2Blade(message,  result, num=0, check_Message=""):
     """
@@ -83,9 +85,14 @@ def deal_arguments(root, node_name):
         variable_date.set_data(data)
 
     resp = post_blade.dealVariableData(variable_date)
-    # logger.info(resp)
+    # logger.debug(resp)
     if resp is not None:
-        logger.error(resp)
+        logger.error("添加自定义变量失败, 原因:{}".format(resp))
+    else:
+        logger.info("添加自定义变量成功")
+    global count
+    logger.info(count)
+    count += 1
 
 
 # 将text中的jmeter变量替换成blade变量
@@ -153,7 +160,7 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
             sqls = re.findall(
                 r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?'.*;)",
                 sql_text)
-            logger.info("提取的sql:%s" % str(sqls))
+            logger.debug("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
                 if variable_name:
@@ -165,12 +172,14 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
             check_elements = sub_element.element.findall("collectionProp/stringProp")
             check_string = ""
             for check_element in check_elements:
-                messages = check_element.text.replace('"', '').split(":")
-                check_string += check_string_root + messages[0] + "=" + messages[1] + ";"
+                if check_element.text:
+                    messages = check_element.text.replace('"', '').split(":")
+                    check_string += check_string_root + messages[0] + "=" + messages[1] + ";"
 
-            logger.info(check_string)
+            logger.debug(check_string)
     logger.debug(request_body)
-    step.set_dataarrcontent(Josn2Blade(eval(request_body), [], 0, check_string))
+    data_chose_row, data_arr_content = Josn2Blade(eval(request_body), [], 0, check_string)
+    step.set_dataarrcontent(data_chose_row, data_arr_content)
 
     logger.debug(step)
     return step.get_step()
@@ -190,9 +199,10 @@ def deal_redis_beanshellsampler(root, step_name, script_content):
     data_content = list()
     temp = dict()
     temp["sheet0"] = list()
+    data_chose_row = random_uuid(32)
     one = [random_uuid(32), "序号", "期望", "command"]
     two = [random_uuid(32), "参数说明", "", "脚本文件需要事先放到redis的bin目录下"]
-    three = [random_uuid(32), "", "keyword=OK", "EXEC,sh clear_redis_ibps.sh;"]
+    three = [data_chose_row, "", "keyword=OK", "EXEC,sh clear_redis_ibps.sh;"]
     temp["sheet0"].append(one)
     temp["sheet0"].append(two)
     temp["sheet0"].append(three)
@@ -202,7 +212,7 @@ def deal_redis_beanshellsampler(root, step_name, script_content):
     step.set_stepname(step_name)
     step.set_stepdes(root.get("testname"))
     step.set_scriptcontent(script_content)
-    step.set_dataarrcontent(data_content)
+    step.set_dataarrcontent(data_chose_row, data_content)
     return step.get_step()
 
 
@@ -224,7 +234,7 @@ def deal_msg_beanshellsampler(root, step_name):
             sqls = re.findall(
                 r"([delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete].*?'.*;)",
                 sql_text)
-            logger.info("提取的sql:%s" % str(sqls))
+            logger.debug("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
                 step.add_presqlcontent(data_sources[data_source], sql)
@@ -237,14 +247,15 @@ def deal_msg_beanshellsampler(root, step_name):
     data_content = list()
     temp = dict()
     temp["sheet0"] = list()
+    data_chose_row = random_uuid(32)
     one = [random_uuid(32), "序号", "期望", "body"]
     two = [random_uuid(32), "参数说明", "", ""]
-    three = [random_uuid(32), "", "", body]
+    three = [data_chose_row, "", "", body]
     temp["sheet0"].append(one)
     temp["sheet0"].append(two)
     temp["sheet0"].append(three)
     data_content.append(temp)
-    step.set_dataarrcontent(data_content)
+    step.set_dataarrcontent(data_chose_row, data_content)
     return step
 
 
@@ -255,7 +266,7 @@ def deal_JDBCSample(root):
     step.set_stepdes(root.get("testname"))
 
     sql = replace_argument(root.element.find(".//stringProp[@name='query']").text)
-    logger.info(sql)
+    logger.debug(sql)
 
     data_source = root.element.find(".//stringProp[@name='dataSource']").text
 
@@ -289,7 +300,7 @@ def deal_JDBCSample(root):
 
             if checks:
                 checks_list = checks.split("\n")
-                logger.info(checks_list)
+                logger.debug(checks_list)
                 check_values = []
                 for i in range(len(checks_list)):
                     if not checks_list[i]:
@@ -313,7 +324,7 @@ def deal_JDBCSample(root):
             step.add_checkcontent(check_string, data_sources[data_source], sql)
         elif sub_element.tag == "JDBCPreProcessor":
             pre_sql = replace_argument(sub_element.element.find(".//stringProp[@name='query']").text)
-            logger.info(pre_sql)
+            logger.debug(pre_sql)
             data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
             variable_name = sub_element.element.find(".//stringProp[@name='variableNames']").text
             if variable_name:
@@ -338,7 +349,7 @@ def deal_transaction_controller(root, node_path, steps):
             step_num += 1
             path = sub_element.element.find(".//stringProp[@name='HTTPSampler.path']").text
             script_name = path.split("/")[-1]
-            logger.info("script_name:%s" % script_name)
+            logger.debug("script_name:%s" % script_name)
             # 先添加脚本
             ds = dealScriptData(node_path)
             ds.set_data_with_default(script_name, root_url, path)
@@ -379,19 +390,19 @@ def deal_transaction_controller(root, node_path, steps):
                 ibm_mq_message["connect"] = ibm_mq_connect
                 manager = jmeter_get_argument_value(sub_element.element.find(
                     ".//stringProp[@name='MQPutMessageSampler.MQ_MANAGER']").text)
-                logger.info(manager)
+                logger.debug(manager)
                 ibm_mq_message["manager"] = manager
                 queue = jmeter_get_argument_value(sub_element.element.find(
                     ".//stringProp[@name='MQPutMessageSampler.MQ_QUEUE']").text)
-                logger.info(queue)
+                logger.debug(queue)
                 ibm_mq_message["queue"] = queue
                 channel = jmeter_get_argument_value(sub_element.element.find(
                     ".//stringProp[@name='MQPutMessageSampler.MQ_CHANNEL']").text)
-                logger.info(channel)
+                logger.debug(channel)
                 ibm_mq_message["channel"] = channel
                 ccsid = jmeter_get_argument_value(sub_element.element.find(
                     ".//stringProp[@name='MQPutMessageSampler.MQ_CCSID']").text)
-                logger.info(ccsid)
+                logger.debug(ccsid)
                 ibm_mq_message["ccsid"] = ccsid
                 # 添加脚本
                 ds = dealScriptData(node_path)
@@ -402,7 +413,7 @@ def deal_transaction_controller(root, node_path, steps):
                 step = step_object.get_step()
                 steps.append(step)
             else:
-                logger.info("IBM MQ 组件前没有获取到对应的Msg BeanShell 组件")
+                logger.debug("IBM MQ 组件前没有获取到对应的Msg BeanShell 组件")
 
 
 def deal_user_parameters(root):
@@ -413,7 +424,7 @@ def deal_user_parameters(root):
     values = root.element.findall("collectionProp[@name='UserParameters.thread_values']//stringProp")
     for i in range(len(names)):
         params_str += check_argument(names[i].text) + "|" + values[i].text + ";"
-    logger.info(params_str)
+    logger.debug(params_str)
     step.add_presqlcontent(data_sources["default"], params_str)
     return step.get_step()
 
@@ -422,7 +433,7 @@ def deal_user_parameters(root):
 def deal_threadgroup(root, node_path):
     # 线程组名称, 作为用例名称
     thread_group_name = root.get("testname")
-    logger.info(node_path)
+    logger.debug(node_path)
     sub_elements = root.get_sub_elements()
 
     # 初始化导入用例请求
@@ -443,10 +454,14 @@ def deal_threadgroup(root, node_path):
 
     ioc.add_case(thread_group_name, steps)
     resp = post_blade.importOfflineCase(ioc)
-    logger.info(resp)
+    logger.debug(resp)
     if resp is not None:
-        logger.error(thread_group_name + resp)
-
+        logger.error("用例{}添加失败, 原因:{}".format(thread_group_name, resp))
+    else:
+        logger.info("用例{}添加成功".format(thread_group_name))
+    global count
+    logger.info(count)
+    count += 1
 
 # 根URL, 添加脚本时使用
 root_url = "ibps_jmeter_http"
@@ -469,8 +484,10 @@ arguments_local = dict()
 # IBM MQ 连接名称
 ibm_mq_connect = "ibm_jmeter_mq"
 
+JMX_DIR = Path(__file__).resolve().parent.parent
+
 # 读取xml文件
-tree = ET.parse('../jmxfile/ibps/第三方贷记往账.jmx')
+tree = ET.parse(JMX_DIR / "file/ibps/第三方贷记往账.jmx")
 
 # 获取xml根节点
 root = tree.getroot()
@@ -493,9 +510,9 @@ for companent in companents:
     if companent.tag == "Arguments":
         # jmeter转blade测试/iibs/自定义变量
         name = base_name + companent.get("testname")
-        logger.info(name)
+        logger.info("开始处理自定义变量:{}".format(name))
         deal_arguments(companent, name)
     elif companent.tag == "ThreadGroup":
-        logger.info(companent.get("testname"))
+        logger.info("开始处理用例{}".format(companent.get("testname")))
         if companent.has_sub_elements():
             deal_threadgroup(companent, base_name)
