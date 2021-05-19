@@ -30,7 +30,7 @@ def Josn2Blade(message,  result, num=0, check_Message=""):
     dict_num = 0
     data_chose_row = random_uuid(32)
     # 传入了验证字段, 则 0 特殊处理
-    if check_Message and num == 0:
+    if num == 0:
         one = [random_uuid(32), "序号", "期望"]
         two = [random_uuid(32), "参数说明", ""]
         three = [data_chose_row, "", check_Message]
