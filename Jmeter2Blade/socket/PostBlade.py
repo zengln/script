@@ -146,10 +146,10 @@ class importOfflineCase_step:
     def set_stepexcute(self, stepexcute):
         self.step_json["stepExcute"] = stepexcute
 
-    def set_dataarrcontent(self, dataarrcontent):
+    def set_dataarrcontent(self, dataChoseRow, dataarrcontent):
         data_content = self.step_json["dataContent"]
         data_content["id"] = ""
-        data_content["dataChoseRow"] = ""
+        data_content["dataChoseRow"] = dataChoseRow
         data_content["content"] = ""
         data_content["dataArrContent"] = dataarrcontent
 
