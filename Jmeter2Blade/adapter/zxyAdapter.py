@@ -15,6 +15,7 @@ from Jmeter2Blade.util.util import random_uuid
 
 count = 1
 
+
 def Josn2Blade(message,  result, num=0, check_Message=""):
     """
     将报文转化为Blade可接收的测试数据格式
@@ -163,6 +164,8 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
             logger.debug("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
+                if "%" in sql:
+                    sql = sql.replace("%", "%25")
                 if variable_name:
                     sql = variable_name + "|" + sql
                 step.add_presqlcontent(data_sources[data_source], sql)
@@ -237,10 +240,12 @@ def deal_msg_beanshellsampler(root, step_name):
             logger.debug("提取的sql:%s" % str(sqls))
             for sql in sqls:
                 sql = replace_argument(sql)
+                if "%" in sql:
+                    sql = sql.replace("%", "%25")
                 step.add_presqlcontent(data_sources[data_source], sql)
 
     script_text = root.element.find(".//stringProp[@name='BeanShellSampler.query']").text
-    body = replace_argument(re.findall(r'String msg_body=(.*?);', script_text)[0])
+    body = replace_argument(re.findall(r'String msg_body=[\r\n]?(.*?);', script_text)[0])
     body = body.replace("\\r\\n", "\r\n")
     logger.debug(body)
 
@@ -266,6 +271,8 @@ def deal_JDBCSample(root):
     step.set_stepdes(root.get("testname"))
 
     sql = replace_argument(root.element.find(".//stringProp[@name='query']").text)
+    if "%" in sql:
+        sql = sql.replace("%", "%25")
     logger.debug(sql)
 
     data_source = root.element.find(".//stringProp[@name='dataSource']").text
@@ -316,7 +323,10 @@ def deal_JDBCSample(root):
 
             for value_index in range(len(check_values)):
                 for key_index in range(len(check_keys)):
-                    check_string += check_keys[key_index].strip() + "=" + check_values[value_index][key_index]
+                    if key_index >= len(check_values[value_index]):
+                        check_string += check_keys[key_index].strip() + "=null"
+                    else:
+                        check_string += check_keys[key_index].strip() + "=" + check_values[value_index][key_index]
                     if value_index == len(check_values) - 1 and key_index == len(check_keys) - 1:
                         check_string += ";"
                     else:
@@ -487,7 +497,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 JMX_DIR = Path(__file__).resolve().parent.parent
 
 # 读取xml文件
-tree = ET.parse(JMX_DIR / "file/ibps/第三方贷记往账.jmx")
+tree = ET.parse(JMX_DIR / "file/ibps/网银借记来帐.jmx")
 
 # 获取xml根节点
 root = tree.getroot()
