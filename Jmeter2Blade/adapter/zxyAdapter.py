@@ -476,6 +476,41 @@ def deal_threadgroup(root, node_path):
     logger.info(count)
     count += 1
 
+
+def start(file):
+    global arguments_local
+    arguments_local = dict()
+
+    # 读取xml文件
+    tree = ET.parse(file)
+
+    # 获取xml根节点
+    root = tree.getroot()
+    # 找到TestPlan组件, 获取blade二级路径名
+    test_plan = root[0][0]
+    root_node_name = test_plan.get("testname")
+    # 获取jmx文件根节点
+    jmx_root = root[0][1]
+
+    base_name = balde_root_name + os.path.altsep + root_node_name + os.path.altsep
+    companents = JmeterElement(test_plan, jmx_root).get_sub_elements()
+
+    for companent in companents:
+        if not companent.isEnabled():
+            continue
+
+        # 自定义变量组件处理
+        if companent.tag == "Arguments":
+            # jmeter转blade测试/iibs/自定义变量
+            name = base_name + companent.get("testname")
+            logger.info("开始处理自定义变量:{}".format(name))
+            deal_arguments(companent, name)
+        elif companent.tag == "ThreadGroup":
+            logger.info("开始处理用例{}".format(companent.get("testname")))
+            if companent.has_sub_elements():
+                deal_threadgroup(companent, base_name)
+
+
 # 根URL, 添加脚本时使用
 root_url = "ibps_jmeter_http"
 # 检查字符串, 根路径
@@ -492,40 +527,16 @@ data_sources = {
 }
 
 # 本地保存用户定义变量, 在其他组件中到变量直接替换数据
-arguments_local = dict()
+arguments_local = None
+post_blade = PostBlade()
 
 # IBM MQ 连接名称
 ibm_mq_connect = "ibm_jmeter_mq"
 
-JMX_DIR = Path(__file__).resolve().parent.parent
+JMX_DIR = Path(__file__).resolve().parent.parent / "file/ibps/有问题的脚本"
 
-# 读取xml文件
-tree = ET.parse(JMX_DIR / "file/ibps/线下协议签订.jmx")
-
-# 获取xml根节点
-root = tree.getroot()
-# 找到TestPlan组件, 获取blade二级路径名
-test_plan = root[0][0]
-root_node_name = test_plan.get("testname")
-# 获取jmx文件根节点
-jmx_root = root[0][1]
-
-base_name = balde_root_name + os.path.altsep + root_node_name + os.path.altsep
-companents = JmeterElement(test_plan, jmx_root).get_sub_elements()
-post_blade = PostBlade()
-
-
-for companent in companents:
-    if not companent.isEnabled():
-        continue
-
-    # 自定义变量组件处理
-    if companent.tag == "Arguments":
-        # jmeter转blade测试/iibs/自定义变量
-        name = base_name + companent.get("testname")
-        logger.info("开始处理自定义变量:{}".format(name))
-        deal_arguments(companent, name)
-    elif companent.tag == "ThreadGroup":
-        logger.info("开始处理用例{}".format(companent.get("testname")))
-        if companent.has_sub_elements():
-            deal_threadgroup(companent, base_name)
+for root, dirs, files in os.walk(JMX_DIR):
+    for file in files:
+        logger.warning("******开始解析jmx文件{}******".format(file))
+        start(JMX_DIR / file)
+        logger.warning("******结束解析jmx文件{}******".format(file))
