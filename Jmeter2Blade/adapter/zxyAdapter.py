@@ -177,7 +177,10 @@ def deal_HTTPSampler(root, step_name, script_content="", request_body=""):
             for check_element in check_elements:
                 if check_element.text:
                     messages = check_element.text.replace('"', '').split(":")
-                    check_string += check_string_root + messages[0] + "=" + messages[1] + ";"
+                    if len(messages) == 1:
+                        check_string += check_element.text
+                    else:
+                        check_string += check_string_root + messages[0] + "=" + messages[1] + ";"
 
             logger.debug(check_string)
     logger.debug(request_body)
@@ -497,7 +500,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 JMX_DIR = Path(__file__).resolve().parent.parent
 
 # 读取xml文件
-tree = ET.parse(JMX_DIR / "file/ibps/网银借记来帐.jmx")
+tree = ET.parse(JMX_DIR / "file/ibps/线下协议签订.jmx")
 
 # 获取xml根节点
 root = tree.getroot()
