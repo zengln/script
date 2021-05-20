@@ -260,7 +260,7 @@ class PostBlade:
         resp = requests.post(util.dealVariableData_url, data=json.dumps(data.__dict__), headers=self.headers)
         content = resp.content.decode("utf-8")
         resp_content_json = json.loads(content)
-        logger.info(resp_content_json)
+        logger.debug(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return
         else:
@@ -273,7 +273,7 @@ class PostBlade:
         resp = requests.post(util.importOfflineCase_url, data=json.dumps(data.__dict__), headers=self.headers)
         content = resp.content.decode("utf-8")
         resp_content_json = json.loads(content)
-        logger.info(resp_content_json)
+        logger.debug(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return
         else:
@@ -286,7 +286,7 @@ class PostBlade:
         resp = requests.post(util.dealScriptData_url, data=json.dumps(data.__dict__), headers=self.headers)
         content = resp.content.decode("utf-8")
         resp_content_json = json.loads(content)
-        logger.info(resp_content_json)
+        logger.debug(resp_content_json)
         if resp_content_json['msg'] == PostBlade.SUCCESS and resp_content_json['sub_msg'] == "":
             return None, resp_content_json['result_list'][0]['ID']
         else:
