@@ -1,0 +1,319 @@
+# -*- coding:utf-8 -*-
+# @Time    : 2021/5/20 13:24
+# @Author  : zengln
+# @File    : znlyAdapter.py
+
+import os
+import xml.etree.ElementTree as ET
+import re
+
+from pathlib import Path
+from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase, \
+    importOfflineCase_step
+from Jmeter2Blade.util.log import logger
+from Jmeter2Blade.util.JmeterElement import JmeterElement
+from Jmeter2Blade.util.util import random_uuid
+
+count = 1
+
+
+def Josn2Blade(message, result, num=0, check_Message=""):
+    """
+    将报文转化为Blade可接收的测试数据格式
+    :param message: 报文数据
+    :param num: sheet计数
+    :param result: Blade 数据格式
+    :param check_Message: 验证字符串
+    :return:
+    """
+    temp = dict()
+    temp["sheet" + str(num)] = []
+    result.append(temp)
+    dict_num = 0
+    data_chose_row = random_uuid(32)
+    # 传入了验证字段, 则 0 特殊处理
+    if num == 0:
+        one = [random_uuid(32), "序号", "期望"]
+        two = [random_uuid(32), "参数说明", ""]
+        three = [data_chose_row, "", check_Message]
+        temp["sheet" + str(num)].append(one)
+        temp["sheet" + str(num)].append(two)
+        temp["sheet" + str(num)].append(three)
+    else:
+        one = [random_uuid(32), "GroupID"]
+        two = [random_uuid(32), "1"]
+        temp["sheet" + str(num)].append(one)
+        temp["sheet" + str(num)].append(two)
+
+    for key, value in message.items():
+        if isinstance(value, dict):
+            dict_num += 1
+            temp["sheet" + str(num)][0].append(key + "(Object)")
+            temp["sheet" + str(num)][-1].append("sheet" + str(num + dict_num) + "|1")
+            Josn2Blade(value, result, num + dict_num)
+        else:
+            temp["sheet" + str(num)][0].append(key)
+            temp["sheet" + str(num)][-1].append(value)
+
+    return data_chose_row, result
+
+
+# 检查变量名称是否按照blade规则命名
+def check_argument(argument):
+    if not argument.startswith("varc_"):
+        argument = "varc_" + argument
+    return argument
+
+
+# 自定义变量组件处理
+def deal_arguments(root, node_name):
+    variable_date = VariableData(node_name)
+    for child in root.element[0]:
+        data = dict()
+
+        var_name = child.find(".//stringProp[@name='Argument.name']")
+        if var_name is not None:
+            data["varName"] = check_argument(var_name.text)
+
+        var_content = child.find(".//stringProp[@name='Argument.value']")
+        if var_content is not None:
+            data["varContent"] = var_content.text
+
+        variable_remark = child.find(".//stringProp[@name='Argument.desc']")
+        if variable_remark is not None:
+            data["variableRemark"] = variable_remark.text
+
+        arguments_local[var_name.text] = var_content.text
+        variable_date.set_data(data)
+
+    resp = post_blade.dealVariableData(variable_date)
+    # logger.debug(resp)
+    if resp is not None:
+        logger.error("添加自定义变量失败, 原因:{}".format(resp))
+    else:
+        logger.info("添加自定义变量成功")
+    global count
+    logger.info(count)
+    count += 1
+
+
+# 将text中的jmeter变量替换成blade变量
+def replace_argument(text):
+    argument_re = re.compile(r'\${(.*?)}', re.S)
+    arguments = re.findall(argument_re, text)
+    for argument in arguments:
+        # 不替换 jmeter 自带变量
+        if argument.startswith("__"):
+            continue
+
+        jmeter_argument = '${' + argument + '}'
+        # 变量名称替换为 blade 规则
+        if argument.startswith("varc"):
+            blade_argument = argument
+        else:
+            blade_argument = 'varc_' + argument
+
+        # 替换掉 var_name_1 -> var_name
+        temp_list = re.findall(r'(.*?)_[0-9]{1}', blade_argument)
+        if temp_list:
+            blade_argument = temp_list[0]
+
+        text = text.replace(jmeter_argument, blade_argument)
+    return text
+
+
+# 判断变量是否为jmeter变量, 并且返回对应的值
+def jmeter_get_argument_value(argument):
+    key = re.findall(r'\${(.*?)}', argument)
+    if not key:
+        return argument
+    return arguments_local[key[0]]
+
+
+# redis BeanShellSample 组件
+def deal_redis_beanshellsampler(root):
+    # 添加脚本
+    script_name = "redis_jmeter_smart_route"
+    ssh_connect = "smart_route_jmeter_redis"
+    ds = dealScriptData(base_name)
+    ds.set_ssh_with_default(script_name, ssh_connect, root.get("testname"))
+    resp, script_id = post_blade.dealScriptData(ds)
+    # 添加数据
+    data_content = list()
+    temp = dict()
+    temp["sheet0"] = list()
+    data_chose_row = random_uuid(32)
+    one = [random_uuid(32), "序号", "期望", "command"]
+    two = [random_uuid(32), "参数说明", "", "脚本文件需要事先放到redis的bin目录下"]
+    three = [data_chose_row, "", "keyword=OK", "EXEC,sh clear_redis_smart_route.sh;"]
+    temp["sheet0"].append(one)
+    temp["sheet0"].append(two)
+    temp["sheet0"].append(three)
+    data_content.append(temp)
+
+    step = importOfflineCase_step()
+    step.set_stepname(root.tag + root.get("testname"))
+    step.set_stepdes(root.get("testname"))
+    step.set_scriptcontent(script_id)
+    step.set_dataarrcontent(data_chose_row, data_content)
+    return step.get_step()
+
+
+# JDBC 组件处理
+def deal_JDBCSample(root):
+    step = importOfflineCase_step()
+    step.set_stepname(root.get("testname"))
+    step.set_stepdes(root.get("testname"))
+    steps = [step.get_step()]
+
+    sql_text = replace_argument(root.element.find(".//stringProp[@name='query']").text)
+    sqls_list = re.findall(
+        r"((delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete|Truncate|truncate|TRUNCATE).+)",
+        sql_text)
+    sqls = [sql_list[0] for sql_list in sqls_list]
+    logger.debug(sqls)
+    for sql in sqls:
+        sql = sql
+        if "%" in sql:
+            sql = sql.replace("%", "%25")
+        logger.debug(sql)
+
+    data_source = root.element.find(".//stringProp[@name='dataSource']").text
+    for sql in sqls:
+        step.add_presqlcontent(data_sources[data_source], sql)
+
+    sub_elements = root.get_sub_elements()
+    # 没有子组件, 纯粹是执行一条sql
+    if not sub_elements:
+        logger.debug("no sub element")
+        return steps
+
+    for sub_element in sub_elements:
+        if not sub_element.isEnabled():
+            continue
+
+    if sub_element.tag == "BeanShellPostProcessor":
+        if "redis" in sub_element.get("testname"):
+            steps.append(deal_redis_beanshellsampler(sub_element))
+
+    return steps
+
+
+# SSH Command 组件处理
+def deal_ssh_command(root):
+    step = importOfflineCase_step()
+    step.set_stepname(root.get("testname"))
+    step.set_stepdes(root.get("testname"))
+    steps = [step.get_step()]
+
+    # 添加脚本
+    script_name = "ssh_jmeter_smart_route"
+    ssh_connect = "smart_route_jmeter_ssh"
+    ds = dealScriptData(base_name)
+    ds.set_ssh_with_default(script_name, ssh_connect, root.get("testname"))
+    resp, script_id = post_blade.dealScriptData(ds)
+    # 添加数据
+    data_content = list()
+    temp = dict()
+    temp["sheet0"] = list()
+    data_chose_row = random_uuid(32)
+    one = [random_uuid(32), "序号", "期望", "command"]
+    two = [random_uuid(32), "参数说明", "", "脚本文件需要事先放到redis的bin目录下"]
+    three = [data_chose_row, "", "keyword=OK", "EXEC,sh {};".format(root.element.find(".//stringProp[@name='command']").text)]
+    temp["sheet0"].append(one)
+    temp["sheet0"].append(two)
+    temp["sheet0"].append(three)
+    data_content.append(temp)
+
+    step.set_scriptcontent(script_id)
+    step.set_dataarrcontent(data_chose_row, data_content)
+
+    return steps
+
+
+# 线程组组件
+def deal_threadgroup(root, node_path):
+    # 线程组名称, 作为用例名称
+    thread_group_name = root.get("testname")
+    logger.debug(node_path)
+    sub_elements = root.get_sub_elements()
+
+    # 初始化导入用例请求
+    ioc = importOfflineCase(node_path)
+
+    steps = []
+    # 获取到所有关键组件
+    for sub_element in sub_elements:
+        # 组件为禁用状态, 不读取
+        if not sub_element.isEnabled():
+            continue
+
+        if sub_element.tag == "JDBCSampler":
+            steps += deal_JDBCSample(sub_element)
+        elif sub_element.tag == "org.apache.jmeter.protocol.ssh.sampler.SSHCommandSampler":
+            steps += deal_ssh_command(sub_element)
+
+    ioc.add_case(thread_group_name, steps)
+    resp = post_blade.importOfflineCase(ioc)
+    logger.debug(resp)
+    if resp is not None:
+        logger.error("用例{}添加失败, 原因:{}".format(thread_group_name, resp))
+    else:
+        logger.info("用例{}添加成功".format(thread_group_name))
+    global count
+    logger.info(count)
+    count += 1
+
+
+# 根URL, 添加脚本时使用
+root_url = "ibps_jmeter_http"
+# 检查字符串, 根路径
+check_string_root = "bupps_resp_head_"
+# 定义blade根路径
+balde_root_name = "jmeter转blade测试"
+
+# 本地数据库名称与blade数据库名称映射
+data_sources = {
+    "bupps_107_orcl": "smart_route_jmeter_oracle"
+}
+
+# 本地保存用户定义变量, 在其他组件中到变量直接替换数据
+arguments_local = dict()
+
+# IBM MQ 连接名称
+ibm_mq_connect = "ibm_jmeter_mq"
+
+JMX_DIR = Path(__file__).resolve().parent.parent
+
+file_path = JMX_DIR / "file/智能路由/Auto-Before.jmx"
+
+# 读取xml文件
+tree = ET.parse(file_path)
+
+# 获取xml根节点
+root = tree.getroot()
+# 找到TestPlan组件, 获取blade二级路径名
+test_plan = root[0][0]
+# root_node_name = test_plan.get("testname")
+root_node_name = os.path.splitext(os.path.split(file_path)[1])[0]
+# 获取jmx文件根节点
+jmx_root = root[0][1]
+
+base_name = balde_root_name + os.path.altsep + root_node_name + os.path.altsep
+companents = JmeterElement(test_plan, jmx_root).get_sub_elements()
+post_blade = PostBlade()
+
+for companent in companents:
+    if not companent.isEnabled():
+        continue
+
+    # 自定义变量组件处理
+    if companent.tag == "Arguments":
+        # jmeter转blade测试/iibs/自定义变量
+        name = base_name + companent.get("testname")
+        logger.info("开始处理自定义变量:{}".format(name))
+        deal_arguments(companent, name)
+    elif companent.tag == "ThreadGroup":
+        logger.info("开始处理用例{}".format(companent.get("testname")))
+        if companent.has_sub_elements():
+            deal_threadgroup(companent, base_name)
