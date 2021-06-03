@@ -6,6 +6,7 @@
 import os
 import xml.etree.ElementTree as ET
 import re
+import json
 
 from pathlib import Path
 from Jmeter2Blade.socket.PostBlade import VariableData, PostBlade, dealScriptData, importOfflineCase, \
@@ -192,9 +193,9 @@ def deal_JDBCSample(root):
         if not sub_element.isEnabled():
             continue
 
-    if sub_element.tag == "BeanShellPostProcessor":
-        if "redis" in sub_element.get("testname"):
-            steps.append(deal_redis_beanshellsampler(sub_element))
+        if sub_element.tag == "BeanShellPostProcessor":
+            if "redis" in sub_element.get("testname"):
+                steps.append(deal_redis_beanshellsampler(sub_element))
 
     return steps
 
@@ -219,7 +220,8 @@ def deal_ssh_command(root):
     data_chose_row = random_uuid(32)
     one = [random_uuid(32), "序号", "期望", "command"]
     two = [random_uuid(32), "参数说明", "", "脚本文件需要事先放到redis的bin目录下"]
-    three = [data_chose_row, "", "keyword=OK", "EXEC,sh {};".format(root.element.find(".//stringProp[@name='command']").text)]
+    three = [data_chose_row, "", "keyword=OK",
+             "EXEC,sh {};".format(root.element.find(".//stringProp[@name='command']").text)]
     temp["sheet0"].append(one)
     temp["sheet0"].append(two)
     temp["sheet0"].append(three)
@@ -231,9 +233,175 @@ def deal_ssh_command(root):
     return steps
 
 
+# CSV 文件处理
+def deal_csv_file(filename):
+    '''
+    读取csv文件, 获取报文内容, 用例名称和验证结果
+    返回一个包含所有用例数据的列表, 列表格式如下
+    messages = [
+        {"casename": , 用例名称
+          "body": ,    报文内容
+          "case_side_type":, 正反例类型
+          "check_message": 验证结果字符串
+        },
+        {"casename": , 用例名称
+          "body": ,    报文内容
+          "case_side_type":, 正反例类型
+          "check_message": 验证结果字符串
+        }
+    ]
+
+    :param filename: 待读取的 csv 文件
+    :return: 包含所有用例数据的列表
+    '''
+    # 给的脚本里文件绝对路径与本机不同
+    # 所有只需要脚本名称, 直接从项目的路径下取文件
+    logger.debug(filename)
+    csv_file = open(CSV_FILE_DIR / filename, encoding="gbk")
+    # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
+    message_stop_index = 0
+    titles = csv_file.readline().split(",")
+    for title in titles:
+        if title in ("yq_respmsg", "yq_respcode"):
+            message_stop_index = titles.index(title) + 1
+            break
+
+    messages = []
+    for line in csv_file.readlines():
+        temp = dict()
+        message = dict()
+        data = line.split(",")
+        logger.debug(data)
+        for i in range(1, len(data) - 3):
+            temp[titles[i]] = data[i]
+
+        message["casename"] = data[0]
+        message["casename"] = message["casename"].replace("<", "").replace(">", "")
+
+        # 获取正反用例类型
+        if "正例" in data[0]:
+            message["case_side_type"] = "0"
+        else:
+            message["case_side_type"] = "1"
+        message["check_message"] = check_msg_head + 'respCode=' + data[-3] + ';' + check_msg_head + 'respMsg=' + data[
+            -2] + ';' + check_msg_head + 'serviceStatus=' + data[-1]
+        message["body"] = json.dumps(temp)
+        messages.append(message)
+
+    return messages
+
+
+# 处理csv特殊线程组
+def deal_csv_threadgroup(root):
+    sub_elements = root.get_sub_elements()
+    http_companents = []
+    messages = None
+    cases = []
+    for sub_element in sub_elements:
+        if not sub_element.isEnabled():
+            continue
+
+        if sub_element.tag == "BeanShellPreProcessor":
+            script = sub_element.element.find(".//stringProp[@name='script']").text
+            csv_file = re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\);', script)[0]
+            csv_file_path = arguments_local.get(csv_file)
+            csv_file_name = os.path.split(csv_file_path)[-1]
+            messages = deal_csv_file(csv_file_name)
+        elif sub_element.tag == "HTTPSamplerProxy":
+            # 在这里改成将 HTTP 组件保存下来, 在后面循环遍历 Message, 重复发送
+            http_companents.append(sub_element)
+
+    for message in messages:
+        step_num = 0
+        steps = []
+        for http_companent in http_companents:
+            step_num += 1
+            request_body_half = http_companent.element.find(".//stringProp[@name='Argument.value']").text
+            requst_body = request_body_half.replace("${req_body}", message["body"])
+            logger.debug(requst_body)
+            steps.append(deal_HTTPSampler(http_companent, "步骤-" + str(step_num), requst_body, message["check_message"]))
+        cases.append([message["casename"], steps])
+    return cases
+
+
+# HTTP 请求组件处理
+def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
+    # 生成脚本
+    path = root.element.find(".//stringProp[@name='HTTPSampler.path']").text
+    logger.debug(path)
+    # 先添加脚本
+    ds = dealScriptData(base_name)
+    ds.set_data_with_default(root.get("testname"), root_url, path)
+    resp, script_content = post_blade.dealScriptData(ds)
+
+    check_string = ""
+    # 报文提取
+    step = dict()
+    step_json = dict()
+    data_content = dict()
+    step["stepName"] = step_name
+    step["stepJson"] = step_json
+    step_json["dataContent"] = data_content
+    step_json["stepDes"] = root.get("testname")
+    # 0—前置，1-后置，2-空
+    step_json["precisionTest"] = "2"
+    pre_sqls = list()
+    step_json["preSqlContent"] = pre_sqls
+    step_json["scriptContent"] = script_content
+    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容
+    if not request_body:
+        request_body = root.element.find(".//stringProp[@name='Argument.value']").text
+
+    # request 特殊处理, 将其中使用的变量替换成blade变量
+    argument_re = re.compile(r'\${(.*?)}', re.S)
+    arguments = re.findall(argument_re, request_body)
+    for argument in arguments:
+        # 不替换 jmeter 自带变量
+        if argument.startswith("__"):
+            continue
+        # 变量的写法可能是 ${test}, '${test}', "${test}"
+        # 三种都替换
+        jmeter_argument = '"${' + argument + '}"'
+        blade_argument = '"varc_' + argument + '"'
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+        jmeter_argument = "'${' + argument + '}'"
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+        jmeter_argument = '${' + argument + '}'
+        request_body = request_body.replace(jmeter_argument, blade_argument)
+
+    sub_elements = root.get_sub_elements()
+    for sub_element in sub_elements:
+        # 前置提取
+        if sub_element.tag == "JDBCPreProcessor":
+            sql = sub_element.element.find(".//stringProp[@name='query']").text
+            logger.info(sql)
+            pre_sql = {
+                # 暂没遇到, 遇到后修改
+                    "connection": data_sources["test"],
+                    "id": "",
+                    "type": "2",
+                    "content": "%s" % sql
+                    }
+            pre_sqls.append(pre_sql)
+        # 后置提取
+        # 验证提取
+        elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
+            logger.debug(check_message)
+            check_string = check_message
+    logger.debug(request_body)
+    data_content["dataChoseRow"], data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
+    data_content["id"] = ""
+    data_content["content"] = ""
+
+    logger.debug(step)
+    return step
+
+
 # 线程组组件
 def deal_threadgroup(root, node_path):
     # 线程组名称, 作为用例名称
+    csv_flag = False
+    thread_group_cases = False
     thread_group_name = root.get("testname")
     logger.debug(node_path)
     sub_elements = root.get_sub_elements()
@@ -242,18 +410,46 @@ def deal_threadgroup(root, node_path):
     ioc = importOfflineCase(node_path)
 
     steps = []
-    # 获取到所有关键组件
+    # 检查当前线程组是否使用csv
     for sub_element in sub_elements:
-        # 组件为禁用状态, 不读取
         if not sub_element.isEnabled():
             continue
 
-        if sub_element.tag == "JDBCSampler":
-            steps += deal_JDBCSample(sub_element)
-        elif sub_element.tag == "org.apache.jmeter.protocol.ssh.sampler.SSHCommandSampler":
-            steps += deal_ssh_command(sub_element)
+        if sub_element.tag == "CSVDataSet":
+            csv_flag = True
+            break
+        elif sub_element.tag == "HTTPSamplerProxy" and "正例" in sub_element.get("testname"):
+            thread_group_cases = True
+            break
 
-    ioc.add_case(thread_group_name, steps)
+    if csv_flag:
+        cases = deal_csv_threadgroup(root)
+        for case in cases:
+            ioc.add_case(case[0], case[1])
+    elif thread_group_cases:
+        # 组件为禁用状态, 不读取
+        for sub_element in sub_elements:
+            if not sub_element.isEnabled():
+                continue
+
+            if sub_element.tag == "JDBCSampler":
+                pass
+            elif sub_element.tag == "HTTPSamplerProxy":
+                deal_HTTPSampler(sub_element, "步骤一")
+    else:
+        # 获取到所有关键组件
+        for sub_element in sub_elements:
+            # 组件为禁用状态, 不读取
+            if not sub_element.isEnabled():
+                continue
+
+            if sub_element.tag == "JDBCSampler":
+                steps += deal_JDBCSample(sub_element)
+            elif sub_element.tag == "org.apache.jmeter.protocol.ssh.sampler.SSHCommandSampler":
+                steps += deal_ssh_command(sub_element)
+
+        ioc.add_case(thread_group_name, steps)
+
     resp = post_blade.importOfflineCase(ioc)
     logger.debug(resp)
     if resp is not None:
@@ -265,6 +461,7 @@ def deal_threadgroup(root, node_path):
     count += 1
 
 
+CSV_FILE_DIR = Path(__file__).parent.parent / "file/智能路由/document"
 # 根URL, 添加脚本时使用
 root_url = "ibps_jmeter_http"
 # 检查字符串, 根路径
@@ -274,8 +471,10 @@ balde_root_name = "jmeter转blade测试"
 
 # 本地数据库名称与blade数据库名称映射
 data_sources = {
-    "bupps_107_orcl": "smart_route_jmeter_oracle"
+    "HS0001": "smart_route_jmeter_oracle"
 }
+
+check_msg_head = "bupps_resp_head_"
 
 # 本地保存用户定义变量, 在其他组件中到变量直接替换数据
 arguments_local = dict()
@@ -285,7 +484,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-Before.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-DengJiBuChaXun.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
@@ -309,7 +508,6 @@ for companent in companents:
 
     # 自定义变量组件处理
     if companent.tag == "Arguments":
-        # jmeter转blade测试/iibs/自定义变量
         name = base_name + companent.get("testname")
         logger.info("开始处理自定义变量:{}".format(name))
         deal_arguments(companent, name)
