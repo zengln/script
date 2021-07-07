@@ -21,11 +21,7 @@ class Launch(object):
 
     # 启动脚本, 包含了压测自动化脚本的主流程
 
-    def __init__(self, config=""):
-        if not config or config == "":
-            config = Config.get_instance()
-
-        self.config = config
+    def __init__(self):
         # 连接后台服务器
         self.servers = []
 
@@ -173,6 +169,7 @@ class Launch(object):
 
     def start(self):
         logger.error("*****************************************************")
+        self.config = Config.get_instance()
         self.check_dir(self.config.download_local_path)
 
         # 生成脚本运行命令
