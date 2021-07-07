@@ -2,6 +2,7 @@
 
 import configparser
 import os
+import sys
 
 from performance_autotest.customexception import CustomError
 
@@ -23,13 +24,17 @@ class Config(object):
 
         # 「优化」自行传入配置文件,
         if not config_file:
-            # 没传入读取默认配置
-            config_path = os.path.dirname(__file__)
-            config_file = config_path + "\\conf\\config.ini"
+            if getattr(sys, 'frozen', False):
+                config_file = os.path.dirname(sys.executable) + "\\conf\\config.ini"
+            elif __file__:
+                config_file = os.path.dirname(__file__)  + "\\conf\\config.ini"
+
+            print(config_file)
 
         if os.path.exists(config_file):
             self.conf.read(config_file)
         else:
+            print(config_file)
             raise CustomError("配置文件不存在")
 
         sections = self.conf.sections()
