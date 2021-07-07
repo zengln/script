@@ -60,7 +60,7 @@ class Server(object):
 
         stdin, stdout, stderr = self.ssh.exec_command("ls -dl " + self.server_name + "/" + self.taskid)
         if stdout.channel.recv_exit_status():
-            stdin, stdout, stderr = self.ssh.exec_command("mkdir " + self.server_name + "/" + self.taskid)
+            stdin, stdout, stderr = self.ssh.exec_command("mkdir -p " + self.server_name + "/" + self.taskid)
 
             if stdout.channel.recv_exit_status():
                 raise CustomError(stderr.read().decode('utf-8'))
