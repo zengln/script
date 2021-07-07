@@ -21,7 +21,7 @@ from performance_autotest.report import Report
 """
     入口脚本
 """
-
+time_stamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
 def check_exe():
     '''
@@ -69,10 +69,10 @@ def servers_connect(server_list):
     num = int(config.remote_host_num)
     for server_index in range(0, num):
         if config.__getattribute__("nmon_path" + str(server_index)) == "":
-            server = Server(config.__getattribute__("ip" + str(server_index)))
+            server = Server(config.__getattribute__("ip" + str(server_index)), taskid="nmon" + time_stamp)
         else:
-            server = Server(config.__getattribute__("ip" + str(server_index)),
-                            config.__getattribute__("nmon_path" + str(server_index)))
+            server = Server(config.__getattribute__("ip" + str(server_index)), taskid="nmon" + time_stamp,
+                            path=config.__getattribute__("nmon_path" + str(server_index)))
 
         server.connect(config.__getattribute__("user" + str(server_index)),
                        config.__getattribute__("passwd" + str(server_index)))
@@ -160,7 +160,7 @@ try:
         check_exe()
         script_path = config.jmeter_script_dir
         script_file, path = get_all_script(script_path, ".jmx")
-        script_command, result_jmeter_file_list = jmeter_cmd(script_file, path)
+        script_command, result_jmeter_file_list = jmeter_cmd(script_file, path, time_stamp)
     elif not config.loadrunner_script_dir == "":
         if config.run_in_win == "0":
             raise CustomError("Loadrunner 压测方式暂不支持脚本在非 WINDOWS 机器上运行")
@@ -201,8 +201,7 @@ try:
         raise CustomError("脚本路径不能全为空,解析结果失败")
 
     report = Report()
-    time_stamp = datetime.datetime.now().strftime('-%Y%m%d%H%M%S')
-    report_name = config.report_name.split(".")[0] + time_stamp + ".html"
+    report_name = config.report_name.split(".")[0] + "-" + time_stamp + ".html"
     report.get_report(result_file_analyse_variable_list, result_nmon_variable_list,
                       file_name=report_name, file_path=config.report_path)
 except Exception:

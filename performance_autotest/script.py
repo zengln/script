@@ -5,8 +5,7 @@ import subprocess
 from performance_autotest.customexception import CustomError
 from performance_autotest.log import logger
 
-
-__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command", "get_all_script_path","analyse_lr_cmd"]
+__all__ = ["get_all_script", "jmeter_cmd", "lr_cmd", "exe_command", "get_all_script_path", "analyse_lr_cmd"]
 
 
 def get_all_script(script_path, file_extension):
@@ -31,7 +30,7 @@ def get_all_script(script_path, file_extension):
         raise CustomError("路径错误,文件夹或者文件不存在: %s" % script_path)
 
     files = os.listdir(script_path)
-    logger.debug("当前路径"+script_path+"下所有文件与文件夹")
+    logger.debug("当前路径" + script_path + "下所有文件与文件夹")
     logger.debug(files)
     for file in files:
         if not os.path.isfile(script_path + "\\" + file):
@@ -57,10 +56,10 @@ def get_all_script_path(file_path, file_extension):
     files_path = []
     for root, dirs, files in os.walk(file_path):
         for file in files:
-            logger.debug("文件名："+file)
+            logger.debug("文件名：" + file)
             if os.path.splitext(file)[1] == file_extension:
                 file_path = os.path.join(root, file)
-                logger.info("含有"+file_extension+"后缀的文件:"+file+",全路径为:"+file_path)
+                logger.info("含有" + file_extension + "后缀的文件:" + file + ",全路径为:" + file_path)
                 files_path.append(os.path.splitext(file_path)[0])
 
     return files_path
@@ -83,19 +82,20 @@ def analyse_lr_cmd(files_path):
     return cmd_anaylise_list
 
 
-def jmeter_cmd(script_file, path):
+def jmeter_cmd(script_file, path, taskid):
     """
     获取路径生成执行脚本命令
     """
     cmd_list = []
     result_file_list = []
     # cmd = r"D:\JMeter\apache-jmeter-5.1.1\bin\jmeter -n -t "
+    os.mkdir(path + os.path.sep + "jmeter" + taskid)
     cmd = r"jmeter -n -t "
     for file in script_file:
-        command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + file + ".jtl -e -o " \
-                  + path + os.path.sep + file
+        command = cmd + path + os.path.sep + file + ".jmx" + " -l " + path + os.path.sep + "jmeter" + taskid + \
+                  os.path.sep + file + ".jtl -e -o " + path + os.path.sep + "jmeter" + taskid + os.path.sep + file
         cmd_list.append(command)
-        result_file_list.append(path + os.path.sep + file)
+        result_file_list.append(path + os.path.sep + "jmeter" + taskid + os.path.sep + file)
 
     logger.debug("生成的 jmeter 命令")
     logger.debug(cmd_list)
@@ -133,7 +133,7 @@ def lr_cmd(script_file, path):
 
 def exe_commands(commands):
     for command in commands:
-        logger.debug("正在执行命令:"+command)
+        logger.debug("正在执行命令:" + command)
         result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if not result.returncode:
             logger.info(result.stdout.decode("gbk"))
@@ -146,7 +146,7 @@ def exe_commands(commands):
 
 
 def exe_command(command):
-    logger.debug("正在执行命令:"+command)
+    logger.debug("正在执行命令:" + command)
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if not result.returncode:
         logger.info(result.stdout.decode("gbk"))
@@ -160,4 +160,3 @@ def exe_command(command):
 if __name__ == '__main__':
     print(get_all_script(r"D:\work\HUPP\1.5.0\压测\场景\CDRDT_20_12.lrs", ".lrs"))
     print(get_all_script(r"D:\work\HUPP\1.5.0\压测\场景", ".lrs"))
-
