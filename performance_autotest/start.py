@@ -8,6 +8,7 @@ import traceback
 import time
 import sys
 import subprocess
+import datetime
 
 from performance_autotest.log import logger
 from performance_autotest.customexception import CustomError
@@ -20,6 +21,7 @@ from performance_autotest.report import Report
 """
     入口脚本
 """
+
 
 def check_exe():
     '''
@@ -199,8 +201,10 @@ try:
         raise CustomError("脚本路径不能全为空,解析结果失败")
 
     report = Report()
-    report.get_report(result_file_analyse_variable_list, result_nmon_variable_list, file_name=config.report_name,
-                      file_path=config.report_path)
+    time_stamp = datetime.datetime.now().strftime('-%Y%m%d%H%M%S')
+    report_name = config.report_name.split(".")[0] + time_stamp + ".html"
+    report.get_report(result_file_analyse_variable_list, result_nmon_variable_list,
+                      file_name=report_name, file_path=config.report_path)
 except Exception:
     error_msg = traceback.format_exc()
     logger.error(error_msg)
