@@ -173,14 +173,11 @@ def deal_JDBCSample(root):
         sql_text)
     sqls = [sql_list[0] for sql_list in sqls_list]
     logger.debug(sqls)
+    data_source = root.element.find(".//stringProp[@name='dataSource']").text
     for sql in sqls:
-        sql = sql
         if "%" in sql:
             sql = sql.replace("%", "%25")
         logger.debug(sql)
-
-    data_source = root.element.find(".//stringProp[@name='dataSource']").text
-    for sql in sqls:
         step.add_presqlcontent(data_sources[data_source], sql)
 
     sub_elements = root.get_sub_elements()
@@ -234,7 +231,7 @@ def deal_ssh_command(root):
 
 
 # CSV 文件处理
-def deal_csv_file(filename):
+def deal_csv_file(filename, stop_list=list()):
     '''
     读取csv文件, 获取报文内容, 用例名称和验证结果
     返回一个包含所有用例数据的列表, 列表格式如下
@@ -254,6 +251,10 @@ def deal_csv_file(filename):
     :param filename: 待读取的 csv 文件
     :return: 包含所有用例数据的列表
     '''
+    if not stop_list:
+        # stop_list = ['yq_respcode', 'yq_respmsg']
+        stop_list = ['ziduanname']
+    logger.debug(stop_list)
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
     logger.debug(filename)
@@ -262,15 +263,15 @@ def deal_csv_file(filename):
     message_stop_index = 0
     titles = csv_file.readline().split(",")
     for title in titles:
-        if title in ("yq_respmsg", "yq_respcode"):
-            message_stop_index = titles.index(title) + 1
+        if title in stop_list:
+            message_stop_index = titles.index(title)
             break
-
     messages = []
     for line in csv_file.readlines():
         temp = dict()
         message = dict()
-        data = line.split(",")
+        data = line.split(",")[0:message_stop_index]
+        check_data = line.split(",")[message_stop_index:message_stop_index + 3]
         logger.debug(data)
         for i in range(1, len(data) - 3):
             temp[titles[i]] = data[i]
@@ -283,8 +284,9 @@ def deal_csv_file(filename):
             message["case_side_type"] = "0"
         else:
             message["case_side_type"] = "1"
-        message["check_message"] = check_msg_head + 'respCode=' + data[-3] + ';' + check_msg_head + 'respMsg=' + data[
-            -2] + ';' + check_msg_head + 'serviceStatus=' + data[-1]
+        message["check_message"] = check_msg_head + 'respCode=' + check_data[-3] + ';' + check_msg_head + 'respMsg=' + \
+                                   check_data[
+                                       -2] + ';' + check_msg_head + 'serviceStatus=' + check_data[-1]
         message["body"] = json.dumps(temp)
         messages.append(message)
 
@@ -297,6 +299,7 @@ def deal_csv_threadgroup(root):
     http_companents = []
     messages = None
     cases = []
+    csv_file_name = None
     for sub_element in sub_elements:
         if not sub_element.isEnabled():
             continue
@@ -306,10 +309,17 @@ def deal_csv_threadgroup(root):
             csv_file = re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\);', script)[0]
             csv_file_path = arguments_local.get(csv_file)
             csv_file_name = os.path.split(csv_file_path)[-1]
+            logger.debug(csv_file_name)
             messages = deal_csv_file(csv_file_name)
         elif sub_element.tag == "HTTPSamplerProxy":
             # 在这里改成将 HTTP 组件保存下来, 在后面循环遍历 Message, 重复发送
             http_companents.append(sub_element)
+            for sub_sub_element in sub_element.get_sub_elements():
+                if sub_sub_element.tag == "BeanShellAssertion":
+                    assert_text = sub_sub_element.element.find(".//stringProp[@name='BeanShellAssertion.query']").text
+                    results = re.findall(r'vars.get\("(.*?)"\).equals(.*?)', assert_text)
+                    stop_list = [result[0] for result in results]
+                    messages = deal_csv_file(csv_file_name, stop_list)
 
     for message in messages:
         step_num = 0
@@ -326,12 +336,28 @@ def deal_csv_threadgroup(root):
 
 # HTTP 请求组件处理
 def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
+    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容
+    # 通过获取到的报文参数个数确认是否为json格式或者其他格式
+    content_type = None
+    if not request_body:
+        arguments = root.element.findall(".//elementProp[@elementType='HTTPArgument']")
+        if len(arguments) == 1:
+            request_body = arguments[0].find(".//stringProp[@name='Argument.value']").text
+        else:
+            content_type = "application/x-www-form-urlencoded"
+            body = dict()
+            for argument in arguments:
+                key = argument.find(".//stringProp[@name='Argument.name']").text
+                value = argument.find(".//stringProp[@name='Argument.value']").text
+                body[key] = value
+            request_body = str(body)
+
     # 生成脚本
     path = root.element.find(".//stringProp[@name='HTTPSampler.path']").text
     logger.debug(path)
     # 先添加脚本
     ds = dealScriptData(base_name)
-    ds.set_data_with_default(root.get("testname"), root_url, path)
+    ds.set_data_with_default(root.get("testname"), root_url, path, content_type=content_type)
     resp, script_content = post_blade.dealScriptData(ds)
 
     check_string = ""
@@ -348,9 +374,6 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
     pre_sqls = list()
     step_json["preSqlContent"] = pre_sqls
     step_json["scriptContent"] = script_content
-    # 没有传入报文内容, 自行获取当前报文内容, 否则使用传入内容
-    if not request_body:
-        request_body = root.element.find(".//stringProp[@name='Argument.value']").text
 
     # request 特殊处理, 将其中使用的变量替换成blade变量
     argument_re = re.compile(r'\${(.*?)}', re.S)
@@ -377,16 +400,31 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
             logger.info(sql)
             pre_sql = {
                 # 暂没遇到, 遇到后修改
-                    "connection": data_sources["test"],
-                    "id": "",
-                    "type": "2",
-                    "content": "%s" % sql
-                    }
+                "connection": data_sources["test"],
+                "id": "",
+                "type": "2",
+                "content": "%s" % sql
+            }
             pre_sqls.append(pre_sql)
         # 后置提取
         # 验证提取
-        elif sub_element.tag in ("ResponseAssertion", "BeanShellAssertion"):
-            logger.debug(check_message)
+        elif sub_element.tag == "BeanShellAssertion":
+            if not check_message:
+                assert_text = sub_element.element.find(".//stringProp[@name='BeanShellAssertion.query']").text
+                results = re.findall(r'"(.*?)".equals\("(.*?)"\)', assert_text)
+                logger.debug(results)
+                for result in results:
+                    if not results.index(result) == 0:
+                        check_message += ";"
+                    if "respcode" in result[1].lower():
+                        if "UNKNOWN" in result[0].upper():
+                            continue
+                        check_message += check_msg_head + 'respCode=' + result[0]
+                    elif "respmsg" in results[1].lower():
+                        check_message += check_msg_head + 'respMsg=' + result[0]
+                    elif "servicestatus" in results[1].lower():
+                        check_message += check_msg_head + 'serviceStatus=' + result[0]
+
             check_string = check_message
     logger.debug(request_body)
     data_content["dataChoseRow"], data_content["dataArrContent"] = Josn2Blade(eval(request_body), [], 0, check_string)
@@ -423,6 +461,13 @@ def deal_threadgroup(root, node_path):
             break
 
     if csv_flag:
+        for sub_element in sub_elements:
+            if not sub_element.isEnabled():
+                continue
+
+            if sub_element.tag == "IfController":
+                root = sub_element
+
         cases = deal_csv_threadgroup(root)
         for case in cases:
             ioc.add_case(case[0], case[1])
@@ -432,10 +477,15 @@ def deal_threadgroup(root, node_path):
             if not sub_element.isEnabled():
                 continue
 
+            step = None
             if sub_element.tag == "JDBCSampler":
-                pass
+                step = deal_JDBCSample(sub_element)
             elif sub_element.tag == "HTTPSamplerProxy":
-                deal_HTTPSampler(sub_element, "步骤一")
+                step = [deal_HTTPSampler(sub_element, "步骤一")]
+            else:
+                continue
+
+            ioc.add_case(sub_element.get("testname"), step)
     else:
         # 获取到所有关键组件
         for sub_element in sub_elements:
@@ -447,9 +497,16 @@ def deal_threadgroup(root, node_path):
                 steps += deal_JDBCSample(sub_element)
             elif sub_element.tag == "org.apache.jmeter.protocol.ssh.sampler.SSHCommandSampler":
                 steps += deal_ssh_command(sub_element)
+            elif sub_element.tag == "HTTPSamplerProxy":
+                steps += [deal_HTTPSampler(sub_element, sub_element.get("testname"))]
+            elif sub_element.tag == "LoopController":
+                # 循环控制器检查结果
 
+                pass
+            logger.debug(steps)
         ioc.add_case(thread_group_name, steps)
 
+    # resp = None
     resp = post_blade.importOfflineCase(ioc)
     logger.debug(resp)
     if resp is not None:
@@ -471,7 +528,7 @@ balde_root_name = "jmeter转blade测试"
 
 # 本地数据库名称与blade数据库名称映射
 data_sources = {
-    "HS0001": "smart_route_jmeter_oracle"
+    "bupps_107_orcl": "smart_route_jmeter_oracle"
 }
 
 check_msg_head = "bupps_resp_head_"
@@ -484,7 +541,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-DengJiBuChaXun.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-HangMingHangHaoTongBu.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
