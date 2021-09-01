@@ -169,7 +169,7 @@ def deal_JDBCSample(root):
 
     sql_text = replace_argument(root.element.find(".//stringProp[@name='query']").text)
     sqls_list = re.findall(
-        r"((delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete|Truncate|truncate|TRUNCATE).+)",
+        r"((delete|insert|update|select|DELETE|INSERT|UPDATE|SELECT|Update|Insert|Select|Delete|Truncate|truncate|TRUNCATE).+[\s\S].+;)",
         sql_text)
     sqls = [sql_list[0] for sql_list in sqls_list]
     logger.debug(sqls)
@@ -435,6 +435,35 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
     return step
 
 
+# 循环控制器
+def deal_LoopController(root):
+    step = importOfflineCase_step()
+    step.set_stepname(root.get("testname"))
+    step.set_stepdes(root.get("testname"))
+    steps = [step.get_step()]
+
+    sub_elements = root.get_sub_elements()
+    for sub_element in sub_elements:
+        if sub_element.tag == "BeanShellPreProcessor":
+            script = sub_element.element.find(".//stringProp[@name='script']").text
+            csv_file = re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\);', script)[0]
+            csv_file_path = arguments_local.get(csv_file)
+            csv_file_name = os.path.split(csv_file_path)[-1]
+            logger.debug(csv_file_name)
+            csv_file = open(CSV_FILE_DIR / csv_file_name, encoding="gbk")
+            lines = csv_file.readlines()
+            for line in lines:
+                line_list = line.split(",")
+                after_sqls = line_list[-2]
+                results = line_list[-1]
+                after_sqls_list = after_sqls.split("union ALL")
+                result_list = results.split("|")
+                for i in range(len(after_sqls_list)):
+                    check_string = "count(1)={};".format(result_list[i])
+                    step.add_checkcontent(check_string, data_sources["bupps_107_orcl"], after_sqls_list[i])
+    return steps
+
+
 # 线程组组件
 def deal_threadgroup(root, node_path):
     # 线程组名称, 作为用例名称
@@ -501,7 +530,7 @@ def deal_threadgroup(root, node_path):
                 steps += [deal_HTTPSampler(sub_element, sub_element.get("testname"))]
             elif sub_element.tag == "LoopController":
                 # 循环控制器检查结果
-
+                steps += deal_LoopController(sub_element)
                 pass
             logger.debug(steps)
         ioc.add_case(thread_group_name, steps)
