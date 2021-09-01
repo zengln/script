@@ -252,8 +252,8 @@ def deal_csv_file(filename, stop_list=list()):
     :return: 包含所有用例数据的列表
     '''
     if not stop_list:
-        # stop_list = ['yq_respcode', 'yq_respmsg']
-        stop_list = ['ziduanname']
+        stop_list = ['yq_respcode', 'yq_respmsg']
+        # stop_list = ['ziduanname']
     logger.debug(stop_list)
     # 给的脚本里文件绝对路径与本机不同
     # 所有只需要脚本名称, 直接从项目的路径下取文件
@@ -570,7 +570,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-HangMingHangHaoTongBu.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-HeiBaiMingDanJiaoYan.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
