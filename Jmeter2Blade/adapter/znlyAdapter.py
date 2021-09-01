@@ -27,6 +27,7 @@ def Josn2Blade(message, result, num=0, check_Message=""):
     :param check_Message: 验证字符串
     :return:
     """
+    logger.debug("message:{}, num:{}".format(message, num))
     temp = dict()
     temp["sheet" + str(num)] = []
     result.append(temp)
@@ -346,7 +347,7 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
     content_type = None
     if not request_body:
         arguments = root.element.findall(".//elementProp[@elementType='HTTPArgument']")
-        if len(arguments) == 1:
+        if len(arguments) == 1 and arguments[0].find(".//stringProp[@name='Argument.name']") is None:
             request_body = arguments[0].find(".//stringProp[@name='Argument.value']").text
         else:
             content_type = "application/x-www-form-urlencoded"
@@ -355,6 +356,8 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
                 key = argument.find(".//stringProp[@name='Argument.name']").text
                 value = argument.find(".//stringProp[@name='Argument.value']").text
                 body[key] = value
+                logger.debug(key)
+                logger.debug(value)
             request_body = str(body)
 
     # 生成脚本
@@ -401,11 +404,12 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
     for sub_element in sub_elements:
         # 前置提取
         if sub_element.tag == "JDBCPreProcessor":
+            data_source = sub_element.element.find(".//stringProp[@name='dataSource']").text
             sql = sub_element.element.find(".//stringProp[@name='query']").text
-            logger.info(sql)
+            logger.debug(sql)
             pre_sql = {
                 # 暂没遇到, 遇到后修改
-                "connection": data_sources["test"],
+                "connection": data_sources[data_source],
                 "id": "",
                 "type": "2",
                 "content": "%s" % sql
@@ -566,7 +570,7 @@ balde_root_name = "jmeter转blade测试"
 
 # 本地数据库名称与blade数据库名称映射
 data_sources = {
-    "bupps": "smart_route_jmeter_oracle"
+    "HS0001": "smart_route_jmeter_oracle"
 }
 
 check_msg_head = "bupps_resp_head_"
@@ -579,7 +583,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-HuiLuChongFa.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-ShengChengQDDZ+PLGYCX+CCCX.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
