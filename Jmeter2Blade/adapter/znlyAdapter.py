@@ -311,8 +311,8 @@ def deal_csv_threadgroup(root):
 
         if sub_element.tag == "BeanShellPreProcessor":
             script = sub_element.element.find(".//stringProp[@name='script']").text
-            logger.debug(re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\);', script))
-            csv_file = re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\);', script)[0]
+            logger.debug(re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\)', script))
+            csv_file = re.findall(r'new FileInputStream\(vars.get\("(.*?)"\)\)', script)[0]
             csv_file_path = arguments_local.get(csv_file)
             csv_file_name = os.path.split(csv_file_path)[-1]
             logger.debug(csv_file_name)
@@ -570,7 +570,7 @@ balde_root_name = "jmeter转blade测试"
 
 # 本地数据库名称与blade数据库名称映射
 data_sources = {
-    "HS0001": "smart_route_jmeter_oracle"
+    "bupps_107_orcl": "smart_route_jmeter_oracle"
 }
 
 check_msg_head = "bupps_resp_head_"
@@ -583,7 +583,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-ShengChengQDDZ+PLGYCX+CCCX.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-TongYiQuXiao.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
