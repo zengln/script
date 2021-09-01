@@ -260,8 +260,8 @@ def deal_csv_file(filename, stop_list=list()):
     logger.debug(filename)
     csv_file = open(CSV_FILE_DIR / filename, encoding="gbk")
     # 数据长度不一定, 通过 yq_respCode 字段定位报文结束位置
-    message_stop_index = 0
     titles = csv_file.readline().split(",")
+    message_stop_index = len(titles)
     for title in titles:
         if title in stop_list:
             message_stop_index = titles.index(title)
@@ -284,9 +284,13 @@ def deal_csv_file(filename, stop_list=list()):
             message["case_side_type"] = "0"
         else:
             message["case_side_type"] = "1"
-        message["check_message"] = check_msg_head + 'respCode=' + check_data[-3] + ';' + check_msg_head + 'respMsg=' + \
-                                   check_data[
-                                       -2] + ';' + check_msg_head + 'serviceStatus=' + check_data[-1]
+        # 考虑下没有结果验证的场景
+        if len(check_data):
+            message["check_message"] = check_msg_head + 'respCode=' + check_data[-3] + ';' + check_msg_head + 'respMsg=' + \
+                                       check_data[
+                                           -2] + ';' + check_msg_head + 'serviceStatus=' + check_data[-1]
+        else:
+            message["check_message"] = ""
         message["body"] = json.dumps(temp)
         messages.append(message)
 
@@ -420,9 +424,9 @@ def deal_HTTPSampler(root, step_name, request_body="", check_message=""):
                         if "UNKNOWN" in result[0].upper():
                             continue
                         check_message += check_msg_head + 'respCode=' + result[0]
-                    elif "respmsg" in results[1].lower():
+                    elif "respmsg" in result[1].lower():
                         check_message += check_msg_head + 'respMsg=' + result[0]
-                    elif "servicestatus" in results[1].lower():
+                    elif "servicestatus" in result[1].lower():
                         check_message += check_msg_head + 'serviceStatus=' + result[0]
 
             check_string = check_message
@@ -557,7 +561,7 @@ balde_root_name = "jmeter转blade测试"
 
 # 本地数据库名称与blade数据库名称映射
 data_sources = {
-    "bupps_107_orcl": "smart_route_jmeter_oracle"
+    "HS0001": "smart_route_jmeter_oracle"
 }
 
 check_msg_head = "bupps_resp_head_"
@@ -570,7 +574,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-HeiBaiMingDanJiaoYan.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-HeXinDuiZhang.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
