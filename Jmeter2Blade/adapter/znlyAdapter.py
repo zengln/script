@@ -583,7 +583,7 @@ ibm_mq_connect = "ibm_jmeter_mq"
 
 JMX_DIR = Path(__file__).resolve().parent.parent
 
-file_path = JMX_DIR / "file/智能路由/Auto-TongYiQuXiao.jmx"
+file_path = JMX_DIR / "file/智能路由/Auto-ZouKuanShouQuan.jmx"
 
 # 读取xml文件
 tree = ET.parse(file_path)
